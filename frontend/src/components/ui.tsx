@@ -51,11 +51,11 @@ export function Thinking({ label }: { label: string }) {
 
 export function ErrorNote({ message, onRetry }: { message: string | null; onRetry?: () => void }) {
   if (!message) return null;
-  const config = /API_KEY|not set on the server|rejected the API key/.test(message);
+  const config = /API_KEY|not set on the server|rejected the API key|Ollama|ollama pull|isn't running|turned off/.test(message);
   return (
     <div className="rounded-2xl border border-[#efc4be] bg-rose/60 px-4 py-3 text-sm text-[#8f3a33]" role="alert">
       <p>{message}</p>
-      {config && <p className="mt-1">This feature needs an AI provider key on the server. See <Link className="underline" to="/settings">Settings</Link> for what's configured.</p>}
+      {config && <p className="mt-1">This feature needs the local AI set up. See <Link className="underline" to="/settings">Settings</Link> for what's configured.</p>}
       {onRetry && <button className="mt-2 font-semibold underline" onClick={onRetry}>Try again</button>}
     </div>
   );

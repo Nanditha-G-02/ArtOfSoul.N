@@ -44,8 +44,8 @@ export default function References() {
     <>
       <PageHeader title="Reference studio" intro="Generate practice references and palette ideas. Everything made here is labelled as AI-generated so it never mixes with your own work or with verified demonstrations." />
       {status.data && !imageReady && <div className="mb-6 rounded-2xl bg-amber-soft px-5 py-4 text-[15px]">
-        Image generation isn't configured on this server (it needs <code>OPENAI_API_KEY</code> for <code>{status.data.image.model}</code>). Until then, set up the subject from life:
-        one lamp at about 45°, a dark backdrop, and photograph it square-on — or ask your teacher to describe a set-up.</div>}
+        Image generation is optional and currently off. {status.data.image.hint} To turn it on for free, run a local Stable Diffusion WebUI with <code>--api</code> and set <code>MODEL_IMAGE=sdwebui:default</code>.
+        Meanwhile, set up the subject from life: one lamp at about 45°, a dark backdrop, photographed square-on — or ask your teacher to describe a set-up. Palette suggestions below work without it.</div>}
 
       <div className="panel grid gap-5 p-6">
         <fieldset><legend className="label">What kind of reference?</legend>
@@ -61,7 +61,7 @@ export default function References() {
         </div>
         <ErrorNote message={err} />
         <div><button className="btn-primary" onClick={gen} disabled={busy || subject.trim().length < 3 || !imageReady}>Generate reference</button></div>
-        {busy && <Thinking label="Generating — usually 15–40 seconds" />}
+        {busy && <Thinking label="Generating on your machine — this can take a minute or more" />}
       </div>
 
       <Section title="Your generated references">

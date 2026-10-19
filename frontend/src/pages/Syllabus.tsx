@@ -83,7 +83,7 @@ export default function SyllabusPage() {
         <button className="btn-primary" disabled={busy || goal.trim().length < 8} onClick={generate}>{data ? "Rebuild my syllabus" : "Build my syllabus"}</button>
         {data && <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>}
       </div>
-      {busy && <div className="mt-4"><Thinking label="Retrieving curriculum, ordering prerequisites and drafting your plan — this can take up to a minute" /></div>}
+      {busy && <div className="mt-4"><Thinking label="Retrieving curriculum, ordering prerequisites and drafting your plan — local models can take several minutes on a laptop" /></div>}
     </div>
   );
 

@@ -182,7 +182,7 @@ function Workspace({ id }: { id: string }) {
             </select></div>
           {cmp && <figure><img src={mediaUrl(cmp.url)} alt={cmp.title} className="rounded-2xl" /><figcaption className="mt-1 text-sm text-ink-soft">{cmp.title} · <Link className="underline" to={`/analysis/${cmp.id}`}>open its feedback</Link></figcaption></figure>}
           <button className="btn-primary" onClick={run} disabled={busy}>{data.analyses.length ? "Analyse again" : "Analyse this piece"}{region ? " (with focus region)" : ""}</button>
-          {busy && <Thinking label="Observing the image, then assessing it against the rubrics" />}
+          {busy && <Thinking label="Observing the image, then assessing it against the rubrics — a few minutes on local models" />}
           <ErrorNote message={err} />
         </div>
       </div>

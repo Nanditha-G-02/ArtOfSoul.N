@@ -68,4 +68,4 @@ export interface SkillRow {
   slug: string; name: string; domain: string; tier: number; track: string; prerequisites: string[];
   status: SkillStatus; explanation: string; evidence_count: number; user_override: boolean;
 }
-export type AiStatus = Record<string, { provider: string; model: string; configured: boolean }>;
+export type AiStatus = Record<string, { provider: string; model: string; configured: boolean; hint: string; free: boolean }>;

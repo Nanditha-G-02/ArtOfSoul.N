@@ -1,3 +1,4 @@
+# First time: docker compose up -d && docker compose exec ollama ollama pull gemma4:e4b
 # ArtOfSoul.N — frontend http://localhost:5174 · API http://localhost:8040
 services:
   db:
@@ -13,6 +14,13 @@ services:
       retries: 10
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    volumes: [ollama:/root/.ollama]
+    restart: unless-stopped
+    # GPU: on Linux/Windows with NVIDIA + Docker GPU support, uncomment:
+    # deploy: { resources: { reservations: { devices: [{ driver: nvidia, count: all, capabilities: [gpu] }] } } }
+
   backend:
     build: ./backend
     env_file:
@@ -21,11 +29,13 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://artofsoul:${POSTGRES_PASSWORD:-artofsoul-local}@db:5432/artofsoul
       STORAGE_DIR: /app/data/storage
+      OLLAMA_URL: http://ollama:11434
       CORS_ORIGINS: http://localhost:5174,http://127.0.0.1:5174
     volumes: [storage:/app/data/storage]
     ports: ["8040:8040"]
     depends_on:
       db: { condition: service_healthy }
+      ollama: { condition: service_started }
     restart: unless-stopped
 
   frontend:
@@ -36,5 +46,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  ollama:
   pgdata:
   storage:

@@ -19,11 +19,12 @@ from collections.abc import Callable
 from ..config import Settings, get_settings
 from ..db import SessionLocal
 from .. import models as m
+from .local import NoImageProvider, OllamaProvider, SDWebUIProvider
 from .providers import AIError, AINotConfigured, AnthropicProvider, OpenAIProvider, Provider, Usage
 
 ROLES = ("teacher", "curriculum", "vision", "assessment", "coordinator", "exercise", "image")
-TEXT_PROVIDERS = {"anthropic", "openai"}
-IMAGE_PROVIDERS = {"openai"}
+TEXT_PROVIDERS = {"ollama", "anthropic", "openai"}
+IMAGE_PROVIDERS = {"sdwebui", "openai"}
 
 
 class ModelRouter:
@@ -36,6 +37,8 @@ class ModelRouter:
     def spec(self, role: str) -> tuple[str, str]:
         raw = getattr(self.settings, f"model_{role}")
         provider, _, model = raw.partition(":")
+        if provider.strip().lower() == "none":
+            return "none", ""
         if not model:
             raise AINotConfigured(f"MODEL_{role.upper()} must look like 'provider:model'.")
         return provider.strip().lower(), model.strip()
@@ -48,23 +51,50 @@ class ModelRouter:
         if self._override:
             return self._override(name)
         if name not in self._providers:
-            if name == "anthropic":
+            if name == "ollama":
+                self._providers[name] = OllamaProvider(self.settings.ollama_url, self.settings.ollama_num_ctx,
+                                                       self.settings.ollama_timeout_seconds, self.settings.ollama_keep_alive)
+            elif name == "sdwebui":
+                self._providers[name] = SDWebUIProvider(self.settings.sd_webui_url, self.settings.sd_steps)
+            elif name == "none":
+                self._providers[name] = NoImageProvider()
+            elif name == "anthropic":
                 self._providers[name] = AnthropicProvider(self.settings.anthropic_api_key, self.settings.anthropic_base_url,
                                                           self.settings.ai_timeout_seconds)
             elif name == "openai":
-                self._providers[name] = OpenAIProvider(self.settings.openai_api_key, self.settings.ai_timeout_seconds)
+                self._providers[name] = OpenAIProvider(self.settings.openai_api_key, self.settings.ai_timeout_seconds,
+                                                       self.settings.openai_base_url)
             else:
                 raise AINotConfigured(f"Unknown AI provider '{name}'.")
         return self._providers[name]
 
     def status(self) -> dict[str, dict]:
-        """Which roles are usable right now (no network calls)."""
-        keys = {"anthropic": bool(self.settings.anthropic_api_key), "openai": bool(self.settings.openai_api_key)}
+        """Which roles are usable right now. Only local servers are probed (short timeout)."""
+        keys = {"anthropic": bool(self.settings.anthropic_api_key),
+                "openai": bool(self.settings.openai_api_key or self.settings.openai_base_url)}
+        local_models: list[str] | None = None
         out = {}
         for role in ROLES:
             p, mdl = self.spec(role)
             supported = p in (IMAGE_PROVIDERS if role == "image" else TEXT_PROVIDERS)
-            out[role] = {"provider": p, "model": mdl, "configured": bool(self._override) or (supported and keys.get(p, False))}
+            hint = ""
+            if self._override:
+                ok = True
+            elif not supported:
+                ok, hint = False, ("Image generation is off (optional)." if p == "none" else f"'{p}' can't serve this role.")
+            elif p == "ollama":
+                if local_models is None:
+                    local_models = self.provider("ollama").available_models() or []  # type: ignore[attr-defined]
+                names = set(local_models) | {n.removesuffix(":latest") for n in local_models}
+                ok = mdl in names
+                hint = "" if ok else (f"Run: ollama pull {mdl}" if local_models else "Start the Ollama app.")
+            elif p == "sdwebui":
+                ok, hint = True, "Requires Stable Diffusion WebUI running with --api."
+            else:
+                ok = keys.get(p, False)
+                hint = "" if ok else f"Needs {p.upper()}_API_KEY."
+            out[role] = {"provider": p, "model": mdl, "configured": ok, "hint": hint,
+                         "free": p in ("ollama", "sdwebui", "none")}
         return out
 
     # -- calls

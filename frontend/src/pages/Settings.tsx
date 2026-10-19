@@ -73,13 +73,14 @@ export default function Settings() {
       </Section>
 
       <Section title="AI models on this server">
-        <p className="mb-3 text-sm text-ink-soft">Providers and models are set by the server administrator through environment variables. Keys never reach your browser.</p>
+        <p className="mb-3 text-sm text-ink-soft">By default everything runs on free local models through Ollama on this computer — nothing is sent to a paid service. Models are set in the backend's .env file.</p>
         <ul className="panel divide-y divide-line">
           {status.data && Object.entries(status.data).map(([role, s]) => (
             <li key={role} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
-              <span>{ROLE[role] ?? role}</span>
+              <span>{ROLE[role] ?? role}{!s.configured && s.hint && <span className="block text-xs text-ink-faint">{s.hint}</span>}</span>
               <span className="flex items-center gap-3"><code className="text-ink-soft">{s.provider}:{s.model}</code>
-                <span className={`chip ${s.configured ? "bg-sky text-teal" : "bg-rose text-[#8f3a33]"}`}>{s.configured ? "Ready" : "Needs API key"}</span>
+                <span className={`chip ${s.configured ? "bg-sky text-teal" : "bg-rose text-[#8f3a33]"}`}>{s.configured ? "Ready" : "Not ready"}</span>
+                {s.free && <span className="chip bg-lavender text-violet-deep">Free · local</span>}
                 {usage.data?.[role] && <span className="text-xs text-ink-faint">{usage.data[role].calls} calls by you</span>}</span>
             </li>))}
         </ul>

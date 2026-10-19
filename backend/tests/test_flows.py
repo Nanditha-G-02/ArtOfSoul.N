@@ -78,7 +78,7 @@ def test_invalid_uploads(client, fake):
 def test_missing_api_keys_give_clear_error(client):
     h = make_user(client, "nokeys@example.com")
     r = client.post("/api/syllabus", headers=h, json={"goal": "Master realistic graphite portrait drawing"})
-    assert r.status_code == 503 and "ANTHROPIC_API_KEY" in r.json()["detail"]
+    assert r.status_code == 503 and "Ollama" in r.json()["detail"]  # default free local provider, not running in CI
     status = client.get("/api/system/ai-status").json()
     assert status["vision"]["configured"] is False
 

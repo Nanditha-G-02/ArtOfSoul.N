@@ -113,13 +113,14 @@ class AnthropicProvider:
 class OpenAIProvider:
     name = "openai"
 
-    def __init__(self, api_key: str | None, timeout: float):
-        if not api_key:
+    def __init__(self, api_key: str | None, timeout: float, base_url: str | None = None):
+        if not api_key and not base_url:
             raise AINotConfigured("OPENAI_API_KEY is not set on the server.")
         import openai
 
         self._openai = openai
-        self.client = openai.OpenAI(api_key=api_key, timeout=timeout, max_retries=2)
+        # base_url lets any OpenAI-compatible server be used (e.g. LM Studio locally, which needs no real key)
+        self.client = openai.OpenAI(api_key=api_key or "not-needed", base_url=base_url, timeout=timeout, max_retries=2)
 
     def _wrap(self, fn):
         try:

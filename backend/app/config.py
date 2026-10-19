@@ -28,20 +28,31 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5174,http://127.0.0.1:5174"
     rate_limit_ai_per_minute: int = 12
 
-    # --- AI providers (keys live only on the server) ---
+    # --- Free, local AI (default): Ollama ---
+    ollama_url: str = "http://localhost:11434"
+    ollama_num_ctx: int = 16384          # context window; Ollama's own default is too small for syllabus prompts
+    ollama_timeout_seconds: float = 900.0  # local models on CPU can be slow
+    ollama_keep_alive: str = "30m"
+    # --- Free, local image generation (optional): Stable Diffusion WebUI / Forge started with --api ---
+    sd_webui_url: str = "http://127.0.0.1:7860"
+    sd_steps: int = 25
+
+    # --- Optional paid/cloud providers (keys live only on the server) ---
     anthropic_api_key: str | None = None
     anthropic_base_url: str | None = None
     openai_api_key: str | None = None
+    openai_base_url: str | None = None   # any OpenAI-compatible endpoint (e.g. LM Studio, a free-tier cloud API)
     ai_timeout_seconds: float = 90.0
 
-    # --- Model roles: "provider:model" ---
-    model_teacher: str = "anthropic:claude-sonnet-5-5"
-    model_curriculum: str = "anthropic:claude-sonnet-5-5"
-    model_vision: str = "anthropic:claude-sonnet-5-5"
-    model_assessment: str = "anthropic:claude-sonnet-5-5"
-    model_coordinator: str = "anthropic:claude-haiku-5-5"
-    model_exercise: str = "anthropic:claude-haiku-5-5"
-    model_image: str = "openai:gpt-image-2"
+    # --- Model roles: "provider:model". Providers: ollama | anthropic | openai ; image: sdwebui | openai | none ---
+    # Defaults use ONE free local model for every role so only one model is loaded in memory.
+    model_teacher: str = "ollama:gemma4:e4b"
+    model_curriculum: str = "ollama:gemma4:e4b"
+    model_vision: str = "ollama:gemma4:e4b"
+    model_assessment: str = "ollama:gemma4:e4b"
+    model_coordinator: str = "ollama:gemma4:e4b"
+    model_exercise: str = "ollama:gemma4:e4b"
+    model_image: str = "none:"
 
     @property
     def cors_origin_list(self) -> list[str]:
