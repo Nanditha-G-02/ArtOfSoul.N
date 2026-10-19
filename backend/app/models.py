@@ -48,6 +48,8 @@ class LearnerProfile(Base):
     strengths: Mapped[list] = mapped_column(JSON, default=list)
     difficulties: Mapped[list] = mapped_column(JSON, default=list)
     weekly_hours: Mapped[int] = mapped_column(Integer, default=5)
+    level: Mapped[str] = mapped_column(String(20), default="intermediate")  # beginner|intermediate|advanced
+    daily_minutes: Mapped[int] = mapped_column(Integer, default=45)
     teaching_style: Mapped[str] = mapped_column(String(40), default="balanced")
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     diagnostic_status: Mapped[str] = mapped_column(String(20), default="pending")  # pending|skipped|complete
@@ -185,6 +187,7 @@ class Syllabus(Base):
     overview: Mapped[str] = mapped_column(Text, default="")
     expected_outcomes: Mapped[list] = mapped_column(JSON, default=list)
     milestones: Mapped[list] = mapped_column(JSON, default=list)
+    practice_plan: Mapped[list] = mapped_column(JSON, default=list)  # daily/weekly routine suggestions
     source_course_ids: Mapped[list] = mapped_column(JSON, default=list)
     change_summary: Mapped[str] = mapped_column(Text, default="")
     model: Mapped[str] = mapped_column(String(120), default="")
@@ -344,10 +347,23 @@ class Exercise(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class LessonContent(Base):
+    """Cached, model-generated teaching script for one lesson (so lessons aren't regenerated every visit)."""
+    __tablename__ = "lesson_contents"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id", ondelete="CASCADE"), unique=True)
+    script: Mapped[dict] = mapped_column(JSON)
+    model: Mapped[str] = mapped_column(String(120))
+    quiz_correct: Mapped[bool | None] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class GeneratedReference(Base):
     __tablename__ = "generated_references"
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    lesson_id: Mapped[int | None] = mapped_column(ForeignKey("lessons.id", ondelete="CASCADE"), index=True)
+    step_index: Mapped[int | None] = mapped_column(Integer)
     purpose: Mapped[str] = mapped_column(String(40))  # subject|composition|tonal|lighting|palette|inspiration
     prompt: Mapped[str] = mapped_column(Text)
     track: Mapped[str] = mapped_column(String(20))

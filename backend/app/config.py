@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5174,http://127.0.0.1:5174"
     rate_limit_ai_per_minute: int = 12
 
+    # --- Local single-user mode: no sign-up; the browser gets a session for the one local learner ---
+    local_mode: bool = True
+
+    # --- Local voice (free): Piper TTS. Falls back to the browser's built-in voice if the model file is missing ---
+    piper_voice: Path = BASE_DIR.parent / "models" / "piper" / "en_US-ljspeech-medium.onnx"
+
     # --- Free, local AI (default): Ollama ---
     ollama_url: str = "http://localhost:11434"
     ollama_num_ctx: int = 16384          # context window; Ollama's own default is too small for syllabus prompts

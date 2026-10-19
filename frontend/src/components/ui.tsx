@@ -55,7 +55,7 @@ export function ErrorNote({ message, onRetry }: { message: string | null; onRetr
   return (
     <div className="rounded-2xl border border-[#efc4be] bg-rose/60 px-4 py-3 text-sm text-[#8f3a33]" role="alert">
       <p>{message}</p>
-      {config && <p className="mt-1">This feature needs the local AI set up. See <Link className="underline" to="/settings">Settings</Link> for what's configured.</p>}
+      {config && <p className="mt-1">The local AI isn't ready. Check <Link className="underline" to="/progress#setup">Progress → Setup</Link>.</p>}
       {onRetry && <button className="mt-2 font-semibold underline" onClick={onRetry}>Try again</button>}
     </div>
   );

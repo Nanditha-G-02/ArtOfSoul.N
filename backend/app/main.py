@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .ai.providers import AIError
-from .api import account, learning, studio
+from .api import account, journey, learning, studio
 from .config import get_settings
 from .curriculum.seed import seed_curriculum
 from .db import SessionLocal, engine
@@ -48,9 +48,15 @@ async def ai_error(_: Request, exc: AIError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message, "kind": type(exc).__name__})
 
 
+app.include_router(journey.router)
 app.include_router(account.router)
 app.include_router(learning.router)
 app.include_router(studio.router)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {"message": "This is the ArtOfSoul.N API. Open the app at http://localhost:5174"}
 
 
 @app.get("/api/health")

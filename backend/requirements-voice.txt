@@ -1,0 +1,2 @@
+# Optional local voice. Piper is GPL-3.0; if this fails to install, the app uses the system voice instead.
+piper-tts>=1.3

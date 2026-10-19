@@ -41,6 +41,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+/** Fetch binary content (e.g. synthesized speech) with the session token. */
+export async function fetchBlob(path: string, body: unknown): Promise<Blob> {
+  const t = tokenStore.get();
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new ApiError(res.status, `Request failed (${res.status})`);
+  return res.blob();
+}
+
 export const api = {
   get: <T,>(p: string) => request<T>("GET", p),
   post: <T,>(p: string, b?: unknown) => request<T>("POST", p, b ?? {}),

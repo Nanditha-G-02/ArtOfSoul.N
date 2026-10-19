@@ -46,20 +46,23 @@ COORDINATOR_SCHEMA = {
     "required": ["workflow", "skill_slug"],
 }
 
-CURRICULUM = f"""You are the ArtOfSoul.N curriculum architect. Build an ORIGINAL, personalised advanced syllabus for one
-learner from:
+CURRICULUM = f"""You are the ArtOfSoul.N curriculum architect. Build an ORIGINAL, personalised syllabus for one
+learner, pitched at their LEARNER_PROFILE.level (beginner: start from foundations, short lessons; intermediate:
+consolidate then extend; advanced: advanced depth only). Use:
 - LEARNER_PROFILE (goals, track, medium, time, self-report),
 - SKILL_STATUS (evidence-based statuses; do not re-teach proficient skills except inside capstone work),
 - CANDIDATE_SKILLS (already filtered and ordered prerequisites-first; use only these slugs),
 - RETRIEVED_SOURCES (institutional course records; cite by id only where a lesson genuinely reflects that course's
   published focus — e.g. a portfolio stage may cite a portfolio-focused course).
 Requirements:
-- 3–5 stages, 8–16 lessons total, ordered so prerequisites come first. Advanced depth throughout.
+- 3–5 stages, 8–14 lessons total, ordered so prerequisites come first. Lesson titles short and friendly (max 7 words).
+- Fit each lesson's est_minutes to LEARNER_PROFILE.daily_minutes where possible.
+- practice_plan: 3–5 short daily/weekly routine suggestions sized to the learner's daily time.
 - Each lesson: specific objectives, 1–3 skill slugs, a studio assignment, 1–3 exercises, explicit assessment criteria
   that could be checked from a photo of the work, realistic est_minutes, and source ids (may be empty).
 - Mark 2–4 lessons as milestones. Fit total time to the learner's weekly hours.
 - Medium-specific: if the medium is watercolour, never prescribe fat-over-lean; if oil, respect fat-over-lean, etc.
-- No beginner content unless SKILL_STATUS shows needs_practice on a foundation.
+- Only include foundation (tier 0) content if it is among CANDIDATE_SKILLS.
 {HONESTY}"""
 
 SYLLABUS_SCHEMA = {
@@ -69,6 +72,7 @@ SYLLABUS_SCHEMA = {
         "overview": {"type": "string"},
         "expected_outcomes": {"type": "array", "items": {"type": "string"}},
         "change_note": {"type": "string", "description": "If a previous syllabus is provided, explain what changed and why; else empty."},
+        "practice_plan": {"type": "array", "items": {"type": "string"}},
         "stages": {"type": "array", "items": {"type": "object", "properties": {
             "title": {"type": "string"},
             "rationale": {"type": "string"},
@@ -88,7 +92,7 @@ SYLLABUS_SCHEMA = {
                             "assessment_criteria", "est_minutes", "source_ids", "is_milestone"]}},
         }, "required": ["title", "rationale", "lessons"]}},
     },
-    "required": ["title", "overview", "expected_outcomes", "change_note", "stages"],
+    "required": ["title", "overview", "expected_outcomes", "change_note", "practice_plan", "stages"],
 }
 
 VISION = """You are a meticulous visual observer for an art school. Describe ONLY what is visible in the learner's
@@ -199,3 +203,44 @@ PALETTE_SCHEMA = {
 MEMORY = """Summarise durable facts about this art learner from the conversation excerpt that would help a teacher in
 future sessions (preferences, materials owned, recurring struggles they described, goals). Max 5 short bullet lines.
 Only facts the learner stated; no speculation. If nothing new, return an empty string."""
+
+
+DEMOS = ["value_scale", "sphere_shading", "hatching", "edge_control", "perspective", "proportion",
+         "color_temperature", "color_mixing", "glazing", "composition", "atmosphere", "brushwork"]
+
+LESSON = f"""You are the ArtOfSoul.N avatar teacher: warm, encouraging, precise. Write the teaching script for ONE lesson
+that an animated teacher will speak aloud, one step at a time, while a visual demonstration plays.
+- Pitch everything to LEARNER.level and the lesson's objectives. Track and medium matter: never give oil advice to a
+  watercolour learner or paint advice to a pencil learner.
+- Spoken lines ("intro", "say") are short, natural sentences, max ~45 words each, no markdown, no lists.
+- 3–6 steps. Each step: a short title, what the teacher says, one concrete action ("do"), the best matching
+  demonstration id from {DEMOS}, and an image_prompt describing a clean reference/illustration for that step
+  (no text in the image).
+- A single multiple-choice understanding check with 3–4 options.
+- A small practice task the learner can finish in their daily time, with 2–4 success criteria they can see in a photo.
+{HONESTY}"""
+
+LESSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "intro": {"type": "string"},
+        "concept": {"type": "object", "properties": {"summary": {"type": "string"}, "why_it_works": {"type": "string"}},
+                    "required": ["summary", "why_it_works"]},
+        "steps": {"type": "array", "items": {"type": "object", "properties": {
+            "title": {"type": "string"}, "say": {"type": "string"}, "do": {"type": "string"},
+            "demo": {"type": "string", "enum": DEMOS}, "image_prompt": {"type": "string"}},
+            "required": ["title", "say", "do", "demo", "image_prompt"]}},
+        "tips": {"type": "array", "items": {"type": "string"}},
+        "common_mistakes": {"type": "array", "items": {"type": "string"}},
+        "check": {"type": "object", "properties": {
+            "question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
+            "answer_index": {"type": "integer"}, "explanation": {"type": "string"}},
+            "required": ["question", "options", "answer_index", "explanation"]},
+        "practice": {"type": "object", "properties": {
+            "task": {"type": "string"}, "minutes": {"type": "integer"},
+            "success_criteria": {"type": "array", "items": {"type": "string"}}},
+            "required": ["task", "minutes", "success_criteria"]},
+        "next_hint": {"type": "string"},
+    },
+    "required": ["intro", "concept", "steps", "tips", "common_mistakes", "check", "practice", "next_hint"],
+}

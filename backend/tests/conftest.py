@@ -77,6 +77,16 @@ class FakeProvider:
             return {"title": "Value massing drill", "objective": "obj", "instructions": ["i"], "materials": ["2B"],
                     "difficulty": "advanced", "est_minutes": 60, "evaluation_criteria": ["c"], "hints": ["h"],
                     "completion_requirements": ["r"], "reference_suggestion": "egg on cloth", "milestones": []}, Usage()
+        if schema_name == "lesson_script":
+            return {"intro": "Today we shape light.", "concept": {"summary": "Group values.", "why_it_works": "Eyes read masses first."},
+                    "steps": [{"title": "Squint", "say": "Squint at the subject.", "do": "Squint", "demo": "value_scale", "image_prompt": "egg on cloth"},
+                              {"title": "Block", "say": "Block the shadow shape.", "do": "Block", "demo": "not-a-demo", "image_prompt": "egg"},
+                              {"title": "", "say": "", "do": "", "demo": "x", "image_prompt": ""}],
+                    "tips": ["t"], "common_mistakes": ["m"],
+                    "check": {"question": "What do eyes read first?", "options": ["Detail", "Big value masses", "Outlines"],
+                              "answer_index": 1, "explanation": "Masses first."},
+                    "practice": {"task": "Three-value egg study", "minutes": 30, "success_criteria": ["Three clear values"]},
+                    "next_hint": "Next: edges."}, Usage()
         if schema_name == "palette":
             return {"name": "p", "pigments": [], "mixtures": [], "notes": []}, Usage()
         raise AssertionError(schema_name)

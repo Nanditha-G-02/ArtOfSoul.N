@@ -6,6 +6,7 @@ export interface User { id: number; email: string; display_name: string; created
 export interface Profile {
   track: Track | null; medium: Medium | null; goals: string; experience: string;
   preferred_subjects: string[]; strengths: string[]; difficulties: string[]; weekly_hours: number;
+  level: string; daily_minutes: number;
   teaching_style: string; onboarding_complete: boolean; diagnostic_status: string; memory_notes: string; updated_at: string;
 }
 export interface Course {
@@ -23,7 +24,7 @@ export interface Lesson {
 }
 export interface Syllabus {
   id: number; version: number; status: string; goal: string; track: Track; medium: Medium | null; title: string;
-  overview: string; expected_outcomes: string[]; milestones: { lesson_position: number; title: string }[];
+  overview: string; expected_outcomes: string[]; practice_plan: string[]; milestones: { lesson_position: number; title: string }[];
   change_summary: string; model: string; created_at: string; lessons: Lesson[]; sources: Course[];
 }
 export interface RoadmapChange { type: string; lesson: string; before?: string; reason: string; evidence_ids: number[] }

@@ -8,7 +8,7 @@ def user(u: m.User) -> dict:
 
 def profile(p: m.LearnerProfile) -> dict:
     return {k: getattr(p, k) for k in ("track", "medium", "goals", "experience", "preferred_subjects", "strengths",
-                                       "difficulties", "weekly_hours", "teaching_style", "onboarding_complete",
+                                       "difficulties", "weekly_hours", "level", "daily_minutes", "teaching_style", "onboarding_complete",
                                        "diagnostic_status", "memory_notes", "updated_at")}
 
 
@@ -30,6 +30,7 @@ def lesson(l: m.Lesson) -> dict:
 def syllabus(s: m.Syllabus) -> dict:
     return {"id": s.id, "version": s.version, "status": s.status, "goal": s.goal, "track": s.track, "medium": s.medium,
             "title": s.title, "overview": s.overview, "expected_outcomes": s.expected_outcomes, "milestones": s.milestones,
+            "practice_plan": s.practice_plan,
             "source_course_ids": s.source_course_ids, "change_summary": s.change_summary, "model": s.model,
             "created_at": s.created_at, "lessons": [lesson(l) for l in sorted(s.lessons, key=lambda x: x.position)]}
 

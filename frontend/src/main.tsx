@@ -1,57 +1,39 @@
-import { StrictMode, type ReactNode } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./index.css";
-import Layout from "./components/Layout";
+import Avatar from "./components/Avatar";
+import Shell from "./components/Shell";
 import { Loading } from "./components/ui";
-import { AuthProvider, useAuth } from "./lib/auth";
-import Analysis from "./pages/Analysis";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Diagnostic from "./pages/Diagnostic";
-import History from "./pages/History";
-import Landing from "./pages/Landing";
-import Onboarding from "./pages/Onboarding";
-import Portfolio from "./pages/Portfolio";
-import References from "./pages/References";
-import RoadmapPage from "./pages/Roadmap";
-import Settings from "./pages/Settings";
-import Skills from "./pages/Skills";
-import SyllabusPage from "./pages/Syllabus";
-import Teacher from "./pages/Teacher";
-import TrackPage from "./pages/Track";
-
-function Protected({ children, needsOnboarding = true }: { children: ReactNode; needsOnboarding?: boolean }) {
-  const { user, profile, loading } = useAuth();
-  const loc = useLocation();
-  if (loading) return <div className="p-10"><Loading /></div>;
-  if (!user) return <Navigate to="/login" state={{ from: loc.pathname }} replace />;
-  if (needsOnboarding && profile && !profile.onboarding_complete) return <Navigate to="/onboarding" replace />;
-  return <>{children}</>;
-}
+import { SessionProvider, useSession } from "./lib/session";
+import Home from "./pages/Home";
+import Practice from "./pages/Practice";
+import Progress from "./pages/Progress";
+import RoadmapPage from "./pages/RoadmapPage";
+import Start from "./pages/Start";
+import Studio from "./pages/Studio";
 
 function App() {
+  const { ready, error, refresh } = useSession();
+  if (!ready) return <div className="grid min-h-dvh place-items-center"><Loading label="Opening ArtOfSoul.N" /></div>;
+  if (error) return (
+    <div className="mx-auto grid min-h-dvh max-w-lg place-items-center p-6 text-center">
+      <div><Avatar mood="thinking" size={200} />
+        <h1 className="mt-4 text-3xl">I can't reach the ArtOfSoul.N server</h1>
+        <p className="mt-2 text-ink-soft">Start it by double-clicking <strong>start-backend.bat</strong>, wait for “Uvicorn running”, then try again.</p>
+        <button className="btn-big mt-6" onClick={refresh}>Try again</button></div>
+    </div>);
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Auth mode="login" />} />
-      <Route path="/signup" element={<Auth mode="signup" />} />
-      <Route path="/onboarding" element={<Protected needsOnboarding={false}><Onboarding /></Protected>} />
-      <Route path="/assessment" element={<Protected needsOnboarding={false}><Diagnostic /></Protected>} />
-      <Route element={<Protected><Layout /></Protected>}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/track/:track" element={<TrackPage />} />
-        <Route path="/teacher" element={<Teacher />} />
-        <Route path="/teacher/:cid" element={<Teacher />} />
-        <Route path="/syllabus" element={<SyllabusPage />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/start" element={<Start />} />
+      <Route element={<Shell />}>
         <Route path="/roadmap" element={<RoadmapPage />} />
-        <Route path="/analysis" element={<Analysis />} />
-        <Route path="/analysis/:aid" element={<Analysis />} />
-        <Route path="/references" element={<References />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/skills" element={<Skills />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/studio" element={<Studio />} />
+        <Route path="/studio/:lessonId" element={<Studio />} />
+        <Route path="/practice" element={<Practice />} />
+        <Route path="/practice/:lessonId" element={<Practice />} />
+        <Route path="/progress" element={<Progress />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -59,5 +41,5 @@ function App() {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></StrictMode>,
+  <StrictMode><BrowserRouter><SessionProvider><App /></SessionProvider></BrowserRouter></StrictMode>,
 );

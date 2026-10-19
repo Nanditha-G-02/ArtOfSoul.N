@@ -34,8 +34,14 @@ def candidate_skills(db: Session, profile: m.LearnerProfile, goal: str, statuses
     for d in profile.difficulties or []:
         targets += [h.doc.meta["slug"] for h in idx.search(d, track=profile.track, kinds=("skill",), k=1)]
     closure = {s for s in graph.closure(targets) if graph.medium_ok(s, profile.medium)}
-    # drop tier-0 refreshers unless evidence shows a gap
-    closure = {s for s in closure if graph.nodes[s].tier > 0 or statuses.get(s) == "needs_practice"}
+    # tier-0 foundations: always for beginners; otherwise only when evidence shows a gap
+    level = getattr(profile, "level", "intermediate")
+    if level == "beginner":
+        closure |= {s for s in graph.track_skills(profile.track, profile.medium) if graph.nodes[s].tier == 0}
+    else:
+        closure = {s for s in closure if graph.nodes[s].tier > 0 or statuses.get(s) == "needs_practice"}
+    if level == "beginner":  # keep a beginner plan focused: drop capstone-tier skills not directly targeted
+        closure = {s for s in closure if graph.nodes[s].tier < 3 or s in targets[:3]}
     ordered = graph.order(closure)
     sources = [h.as_dict() for h in course_hits]
     return ordered, sources
@@ -80,6 +86,7 @@ def generate(db: Session, user: m.User, goal: str) -> m.Syllabus:
         "LEARNER_PROFILE": {"goal": goal, "track": profile.track, "medium": profile.medium, "experience": profile.experience,
                             "preferred_subjects": profile.preferred_subjects, "self_reported_strengths": profile.strengths,
                             "self_reported_difficulties": profile.difficulties, "weekly_hours": profile.weekly_hours,
+                            "level": profile.level, "daily_minutes": profile.daily_minutes,
                             "teaching_style": profile.teaching_style},
         "SKILL_STATUS": {s: st for s, st in statuses.items() if s in ordered},
         "CANDIDATE_SKILLS": [{"slug": s, "name": skills[s].name, "tier": skills[s].tier, "description": skills[s].description,
@@ -117,6 +124,7 @@ def generate(db: Session, user: m.User, goal: str) -> m.Syllabus:
     syl = m.Syllabus(user_id=user.id, version=version, goal=goal, track=profile.track, medium=profile.medium,
                      title=data["title"][:200], overview=data.get("overview", ""),
                      expected_outcomes=data.get("expected_outcomes", []),
+                     practice_plan=[str(x) for x in data.get("practice_plan", [])][:6],
                      source_course_ids=sorted({i for l in flat for i in l["source_ids"]}),
                      model=get_router().label("curriculum"))
     db.add(syl)

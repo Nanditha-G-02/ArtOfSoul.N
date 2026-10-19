@@ -1,10 +1,12 @@
 @import "tailwindcss";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/nunito/index.css";
 
 @theme {
-  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Nunito Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-paper: #fbf7f1;
+  --color-paper: #fdf8f2;
   --color-paper-deep: #f3ece2;
   --color-peach: #f6dccb;
   --color-ink: #231f47;
@@ -19,7 +21,10 @@
   --color-coral: #d9675e;
   --color-rose: #f6dcd8;
   --color-teal: #23807f;
-  --color-sky: #d7ecef;
+  --color-sky: #d6ebf7;
+  --color-sky-deep: #4f9ccf;
+  --color-purple: #7c4dcc;
+  --color-coral-soft: #fbd3cc;
 
   --color-amber: #c2923a;
   --color-amber-soft: #f6ebd2;
@@ -29,13 +34,13 @@
 
 @layer base {
   html { -webkit-font-smoothing: antialiased; }
-  body { @apply bg-paper text-ink font-sans; font-size: 15.5px; line-height: 1.6; }
+  body { @apply bg-paper text-ink font-sans; font-size: 16px; line-height: 1.6; }
   h1, h2, h3 { @apply font-display text-ink; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; }
   :focus-visible { outline: 2.5px solid var(--color-violet); outline-offset: 2px; border-radius: 6px; }
   ::selection { background: var(--color-lavender); }
 }
 
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14.5px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15.5px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
 @utility btn-primary { @apply btn bg-ink text-paper hover:bg-violet-deep; }
 @utility btn-pencil { @apply btn bg-violet text-white hover:bg-violet-deep; }
 @utility btn-paint { @apply btn bg-coral text-white hover:bg-[#c2554d]; }
@@ -52,3 +57,6 @@
 
 @keyframes settle { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .hero-settle { animation: settle 0.9s cubic-bezier(.2,.7,.2,1) both; }
+
+@utility btn-big { @apply btn px-8 py-4 text-lg bg-gradient-to-r from-purple to-coral text-white shadow-[0_12px_30px_-10px_rgba(124,77,204,.6)] hover:brightness-105; }
+.blob { position: absolute; border-radius: 9999px; filter: blur(40px); opacity: .55; pointer-events: none; }
