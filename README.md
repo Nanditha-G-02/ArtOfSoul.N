@@ -23,6 +23,15 @@ Open **http://localhost:5174**. The API runs on **http://localhost:8040** (`/doc
 Ports 5174/8040 were chosen to avoid the usual 3000/5173/8000/5432 clashes; Postgres is not exposed to the host.
 Learner data, curriculum records and uploaded artwork persist in the `pgdata` and `storage` volumes.
 
+### Windows without Docker (quickest)
+
+1. Install [Python 3.11+](https://www.python.org/downloads/) (tick **Add python.exe to PATH**) and [Node.js LTS](https://nodejs.org/).
+2. Double-click **start-backend.bat**. The first run installs packages and opens `backend\.env` in Notepad —
+   paste your `ANTHROPIC_API_KEY` (and `OPENAI_API_KEY` if you want reference images), save, then double-click it again.
+3. Double-click **start-frontend.bat**. It opens http://localhost:5174 in your browser.
+
+Keep both windows open while you use the app. Data is saved in `backend\data\`.
+
 ### Local development
 
 **Backend** (Python 3.11+):
