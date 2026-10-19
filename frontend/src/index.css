@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #fbf7f1;
+  --color-paper-deep: #f3ece2;
+  --color-peach: #f6dccb;
+  --color-ink: #231f47;
+  --color-ink-soft: #57537a;
+  --color-ink-faint: #8c88a8;
+  --color-line: #e6dfd4;
+
+  --color-violet: #5b3fa0;
+  --color-violet-deep: #3f2a78;
+  --color-lavender: #ece6f8;
+
+  --color-coral: #d9675e;
+  --color-rose: #f6dcd8;
+  --color-teal: #23807f;
+  --color-sky: #d7ecef;
+
+  --color-amber: #c2923a;
+  --color-amber-soft: #f6ebd2;
+
+  --radius-panel: 1.25rem;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body { @apply bg-paper text-ink font-sans; font-size: 15.5px; line-height: 1.6; }
+  h1, h2, h3 { @apply font-display text-ink; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; }
+  :focus-visible { outline: 2.5px solid var(--color-violet); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: var(--color-lavender); }
+}
+
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14.5px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
+@utility btn-primary { @apply btn bg-ink text-paper hover:bg-violet-deep; }
+@utility btn-pencil { @apply btn bg-violet text-white hover:bg-violet-deep; }
+@utility btn-paint { @apply btn bg-coral text-white hover:bg-[#c2554d]; }
+@utility btn-ghost { @apply btn text-ink hover:bg-paper-deep; }
+@utility btn-outline { @apply btn border border-line bg-white/70 text-ink hover:border-ink-faint; }
+@utility panel { @apply rounded-[var(--radius-panel)] bg-white/80 border border-line; }
+@utility field { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint focus:border-violet focus:outline-none; }
+@utility label { @apply mb-1.5 block text-sm font-medium text-ink-soft; }
+@utility chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+@keyframes settle { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.hero-settle { animation: settle 0.9s cubic-bezier(.2,.7,.2,1) both; }

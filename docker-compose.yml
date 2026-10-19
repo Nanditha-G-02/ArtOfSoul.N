@@ -1,0 +1,40 @@
+# ArtOfSoul.N — frontend http://localhost:5174 · API http://localhost:8040
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: artofsoul
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-artofsoul-local}
+      POSTGRES_DB: artofsoul
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artofsoul -d artofsoul"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://artofsoul:${POSTGRES_PASSWORD:-artofsoul-local}@db:5432/artofsoul
+      STORAGE_DIR: /app/data/storage
+      CORS_ORIGINS: http://localhost:5174,http://127.0.0.1:5174
+    volumes: [storage:/app/data/storage]
+    ports: ["8040:8040"]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports: ["5174:80"]
+    depends_on:
+      backend: { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  storage:
