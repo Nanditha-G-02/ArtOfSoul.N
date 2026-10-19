@@ -46,7 +46,7 @@ def test_ollama_json_uses_schema_strips_fences_and_retries():
 def test_ollama_gives_actionable_errors():
     def down(req):
         raise httpx.ConnectError("refused")
-    with pytest.raises(AINotConfigured, match="Start the Ollama app"):
+    with pytest.raises(AINotConfigured, match="Start Ollama"):
         ollama(down).text("gemma4:e4b", "s", [{"role": "user", "content": "x"}], 10)
 
     def missing(req):

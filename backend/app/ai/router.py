@@ -87,7 +87,7 @@ class ModelRouter:
                     local_models = self.provider("ollama").available_models() or []  # type: ignore[attr-defined]
                 names = set(local_models) | {n.removesuffix(":latest") for n in local_models}
                 ok = mdl in names
-                hint = "" if ok else (f"Run: ollama pull {mdl}" if local_models else "Start the Ollama app.")
+                hint = "" if ok else (f"Run: ollama pull {mdl}" if local_models else "Start Ollama (the Ollama app on Windows/macOS, or `ollama serve` on Linux).")
             elif p == "sdwebui":
                 ok, hint = True, "Requires Stable Diffusion WebUI running with --api."
             else:

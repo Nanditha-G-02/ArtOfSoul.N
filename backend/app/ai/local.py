@@ -66,7 +66,7 @@ class OllamaProvider:
         try:
             r = self.client.post("/api/chat", json=body)
         except httpx.ConnectError as e:
-            raise AINotConfigured(f"Ollama isn't running at {self.url}. Start the Ollama app, then run: ollama pull {model}") from e
+            raise AINotConfigured(f"Ollama isn't running at {self.url}. Start Ollama (the app on Windows/macOS, or `ollama serve` on Linux), then run: ollama pull {model}") from e
         except httpx.TimeoutException as e:
             raise AIProviderError("The local model took too long. Try a smaller model (e.g. gemma4:e2b) or a shorter request.") from e
         if r.status_code == 404:

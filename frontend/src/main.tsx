@@ -20,7 +20,7 @@ function App() {
     <div className="mx-auto grid min-h-dvh max-w-lg place-items-center p-6 text-center">
       <div><Avatar mood="thinking" size={200} />
         <h1 className="mt-4 text-3xl">I can't reach the ArtOfSoul.N server</h1>
-        <p className="mt-2 text-ink-soft">Start it by double-clicking <strong>start-backend.bat</strong>, wait for “Uvicorn running”, then try again.</p>
+        <p className="mt-2 text-ink-soft">Start it with <strong>start-backend.bat</strong> (Windows) or <strong>./start.sh</strong> (Ubuntu), wait for “Uvicorn running”, then try again.</p>
         <button className="btn-big mt-6" onClick={refresh}>Try again</button></div>
     </div>);
   return (

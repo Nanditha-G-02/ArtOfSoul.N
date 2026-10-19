@@ -25,6 +25,32 @@ Next time, just double-click the two files again. After the downloads, everythin
 
 > http://localhost:8040 is the backend only; the app is at http://localhost:5174.
 
+## Quick start (Ubuntu / Linux)
+
+1. Install the prerequisites (one time):
+
+   ```bash
+   sudo apt update && sudo apt install -y python3 python3-venv python3-pip curl unzip
+   # Node.js 20+ (Ubuntu's own apt version is often too old):
+   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+   # Ollama (runs the AI model locally, installs as a background service):
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+
+2. In the project folder, start everything with one command:
+
+   ```bash
+   chmod +x start.sh start-backend.sh start-frontend.sh   # only needed once, if the zip lost permissions
+   ./start.sh
+   ```
+
+   The first run installs packages, the voice and the AI model (several GB). Your browser opens
+   **http://localhost:5174**. Press **Ctrl+C** in the terminal to stop.
+
+   Prefer two terminals? Run `./start-backend.sh` in one and `./start-frontend.sh` in the other.
+
+NVIDIA GPU on Linux: install the NVIDIA driver; Ollama uses the GPU automatically (`nvidia-smi` should list it).
+
 ---
 
 ## What runs locally
@@ -99,7 +125,10 @@ what a future frame-sequence video generator would consume.
 | Problem | Fix |
 |---|---|
 | `'irm' is not recognized` | That command is for PowerShell, not Command Prompt — or use the installer from ollama.com/download |
-| "Ollama isn't running" | Start the Ollama app (llama icon in the tray), then retry |
+| "Ollama isn't running" | Windows: start the Ollama app (llama icon in the tray). Ubuntu: `sudo systemctl start ollama` (or `ollama serve`) |
+| Ubuntu: `python3 -m venv` fails | `sudo apt install python3-venv` |
+| Ubuntu: frontend says Node is too old | Install Node 22 from NodeSource (see Quick start) |
+| Ubuntu: `Permission denied` running `./start.sh` | `chmod +x start.sh start-backend.sh start-frontend.sh` |
 | "The model 'gemma4:e4b' isn't downloaded" | Run `ollama pull gemma4:e4b` |
 | Plan or lesson fails with "didn't return valid structured output" | Press *Try again*; if it repeats, use a larger model (`gemma4:12b`) |
 | Very slow replies | Use `gemma4:e2b`, close other heavy apps, or use a GPU |
