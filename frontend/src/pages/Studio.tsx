@@ -153,7 +153,7 @@ function Lessonroom({ id }: { id: string }) {
   const imagesOn = ai.data?.image?.configured;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
       {/* teacher column */}
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <div className="relative mx-auto w-fit">
@@ -178,7 +178,7 @@ function Lessonroom({ id }: { id: string }) {
       </aside>
 
       {/* lesson column */}
-      <section>
+      <section className="min-w-0">
         {data && <>
           <p className="text-sm font-bold text-meadow">{data.lesson.stage_title} · {minutes(data.lesson.est_minutes)}</p>
           <h1 className="text-[2.1rem] leading-tight">{data.lesson.title}</h1>
@@ -207,7 +207,7 @@ function Lessonroom({ id }: { id: string }) {
               {seg.kind === "step" && seg.step !== undefined && (() => { const st = data.script!.steps[seg.step]; return <>
                 <p className="text-sm text-ink-faint">Step {seg.step + 1} of {data.script!.steps.length}</p>
                 <h2 className="text-2xl">{st.title}</h2>
-                <div className="mt-4 grid gap-5 md:grid-cols-[1.2fr_1fr]">
+                <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
                   <div className="aspect-[10/7]">
                     {visual ? <figure className="flex h-full flex-col"><img src={mediaUrl(visual.url)} alt={st.image_prompt} className="h-full w-full rounded-2xl object-cover" />
                       <figcaption className="mt-2 text-center text-sm"><span className="chip bg-amber-soft text-[#8a6418]">AI-generated reference</span></figcaption></figure>
@@ -216,7 +216,7 @@ function Lessonroom({ id }: { id: string }) {
                   <div>
                     <p className="text-lg">{st.say}</p>
                     <p className="mt-3 rounded-2xl bg-peach/70 p-4 font-bold">Try it: <span className="font-normal">{st.do}</span></p>
-                    {!visual && imagesOn && <button className="btn-outline mt-4 text-sm" disabled={imgBusy} onClick={() => picture(seg.step!)}>{imgBusy ? "Generating…" : "Show me a picture"}</button>}
+                    {!visual && imagesOn && <button className="btn-outline mr-2 mt-4 text-sm" disabled={imgBusy} onClick={() => picture(seg.step!)}>{imgBusy ? "Generating…" : "Show me a picture"}</button>}
                     {!visual && imagesOn === false && <p className="mt-4 text-xs text-ink-faint">Showing an animated demonstration. Generated pictures are optional (see Progress → Setup).</p>}
                     {imgErr && <div className="mt-3"><ErrorNote message={imgErr} /></div>}
                     <button className="btn-big mt-4 py-2.5 text-sm" onClick={() => setSketchOpen(!sketchOpen)} aria-expanded={sketchOpen}>

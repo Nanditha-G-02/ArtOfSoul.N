@@ -1,6 +1,33 @@
+# Secrets
 .env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Node / build
 node_modules/
 dist/
-__pycache__/
+frontend/.vite/
+
+# Local data (database, uploads, cached speech, saved AI choice)
 backend/data/
-*.pyc
+*.db
+*.db-wal
+*.db-shm
+
+# Downloaded models
+models/piper/*.onnx
+models/piper/*.onnx.json
+
+# Editors / OS / logs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

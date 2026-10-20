@@ -1,161 +1,350 @@
-# ArtOfSoul.N — your personal AI art teacher
+<div align="center">
 
-A calm, painterly art-teaching app that runs **entirely on your own computer, for free**. You answer a few
-questions, the AI builds a personalised pencil-drawing or painting plan, and G — your tutor, with a voice and a
-portrait that comes alive while she speaks — walks you through each lesson, checks your understanding, and gives
-feedback on photos of your practice.
+# 🎨 ArtOfSoul.N
 
-**Change the tutor:** replace `frontend/src/assets/tutor.jpg` (a square-ish portrait works best), edit the name in
-`frontend/src/lib/tutor.ts`, and set `TUTOR_NAME` in `backend/.env` so the AI uses the same name.
+### Your personal AI art teacher — free, private and running on your own computer
 
-### Interactive lessons
+Learn **pencil drawing** or **painting** with **G**, an animated AI tutor who plans your lessons,
+teaches each step out loud, lets you practise interactively, and gives honest feedback on photos of your work.
 
-Every lesson mixes listening with doing:
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.11+-009688?logo=fastapi&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-default-003b57?logo=sqlite&logoColor=white)
+![Ollama](https://img.shields.io/badge/AI-Ollama_(local)-000000)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-| Part | What you do |
+<img src="assets/images/01-home.jpg" alt="ArtOfSoul.N home page: a painted dawn landscape with the headline 'Your personal AI art teacher.'" width="900">
+
+</div>
+
+---
+
+## Contents
+
+- [What it is](#what-it-is)
+- [Key features](#key-features)
+- [Screenshots](#screenshots)
+- [Technology stack](#technology-stack)
+- [Architecture](#architecture)
+- [Project structure](#project-structure)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [API](#api)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License and acknowledgements](#license-and-acknowledgements)
+
+---
+
+## What it is
+
+ArtOfSoul.N is a full-stack web app that acts as a **personal art teacher** for two subjects only — **pencil drawing**
+(graphite) and **painting** (oil, acrylic or watercolour, taught as different media).
+
+Learning art alone is hard: tutorials are generic, nobody plans what to learn next, and nobody looks at your work.
+ArtOfSoul.N asks a few questions, builds a plan in the right order for your level and daily time, teaches each lesson
+with narration and animated demonstrations, and reviews photos of your practice — then adapts your plan from that
+evidence.
+
+**Everything runs locally.** The AI models run through [Ollama](https://ollama.com) on your own machine: no sign-up,
+no API keys, no subscriptions, and your artwork never leaves your computer. "Free" means no paid service is required;
+your hardware, electricity and the one-time model downloads are the real costs.
+
+**Who it's for:** self-taught artists and hobbyists from beginner to experienced, students who want structured
+practice between classes, and anyone who wants feedback on their drawings without sharing them online.
+
+---
+
+## Key features
+
+| Area | What's implemented |
 |---|---|
-| Key words | Flip flashcards for the lesson's terms |
-| Steps | Watch the animated demonstration, then **try it on the sketch pad** (pencil grades 2H–6B, or a paint palette; pen pressure supported) and send the sketch to G for quick feedback |
-| Order challenge | Put the lesson's steps back in the right order |
-| Value lab (pencil) | A 5-round game matching tones on a 9-step value scale — the surrounding tone tries to fool your eye |
-| Colour lab (painting) | Mix target colours from a limited palette by adding "parts" of pigment; mixing behaves like paint (yellow + blue goes green), and watercolour uses water instead of white |
-| Quiz | Three questions, multiple choice or true/false, with explanations |
-| Practice | A real-world task, then photo feedback |
+| **Onboarding** | One question at a time, spoken by the tutor: name, pencil or painting, paint type, level, favourite subjects, goal, daily time and techniques to improve. Custom answers allowed; double-clicks and missing answers are handled. |
+| **Personalised plan** | 6–10 lessons in 3–4 stages, ordered by a **prerequisite skill graph** (42 skills). Beginners get foundations first; experienced artists skip them. Includes a daily practice routine. |
+| **Animated roadmap** | A winding path of lessons (done / *you are here* / upcoming), milestones, lesson details on tap, rebuild or change answers. |
+| **AI tutor "G"** | Portrait tutor with breathing/float/tilt animation; while speaking a paint-colour halo, nod and live sound-wave follow the voice; thinking dots; paint-splash burst on correct answers. |
+| **Voice** | Local **Piper** text-to-speech (offline), with automatic fallback to the operating system's voice. |
+| **Learning studio** | Each lesson: welcome → the idea → **key-word flashcards** → steps with **12 animated demonstrations** → **put-the-steps-in-order** challenge → **value lab** (pencil) or **colour lab** (painting) → **3-question quiz** → practice task. "Play narrated lesson" auto-advances and pauses at interactive parts. Ask the tutor questions any time. |
+| **Sketch pad** | Draw right in the lesson (pencil grades 2H–6B or a paint palette, pen pressure, eraser, undo) and send the sketch to the tutor for quick feedback. |
+| **Practice feedback** | Upload a photo: a vision model describes only what's visible, then a separate rubric pass rates skills. You get strengths, improvements with reasons, next steps and a recommended exercise. Unclear photos are rejected honestly. |
+| **Adaptive roadmap** | Repeated weak results insert a focused-practice lesson; repeated solid results let you skip ahead. Every change is recorded with its reason. |
+| **Progress** | Lessons finished, quiz score, reviewed pieces, day streak, activities played, skills, recent practice, and a hardware check. |
+| **AI quality picker** | Fast / Balanced / Accurate / Best — downloads missing models inside the app with a progress bar. "Accurate" adds a specialist vision model (`qwen3-vl:8b`). |
+| **Speed** | Model warm-up at start-up, next lesson written in the background, lessons cached, short prompts, "thinking" mode off. |
+| **Grounding** | Lesson prompts include the curriculum's own skill descriptions and checked basics for your medium (e.g. *fat over lean* for oil). Curriculum informed by 14 published university course descriptions, each linked to its source. |
 
-Narrated playback pauses at each interactive part. Progress shows a daily streak and activities played.
-
-**Home → Questions → Roadmap → Learning studio → Practice → Progress**
-
-No sign-up, no API keys, no subscriptions. "Free" means no paid service is required — your hardware, electricity,
-disk space and the one-time model downloads are the real costs.
-
----
-
-## Quick start (Windows)
-
-1. Install, all free:
-   - [Python 3.11+](https://www.python.org/downloads/) — tick **Add python.exe to PATH**
-   - [Node.js LTS](https://nodejs.org/)
-   - [Ollama](https://ollama.com/download) — runs the AI model locally
-2. Double-click **`start-backend.bat`**. The first run installs packages, the voice (~60 MB) and the AI model
-   (several GB). Wait for `Uvicorn running…` and leave the window open.
-3. Double-click **`start-frontend.bat`**. Your browser opens **http://localhost:5174**.
-
-Next time, just double-click the two files again. After the downloads, everything works offline.
-
-> http://localhost:8040 is the backend only; the app is at http://localhost:5174.
-
-## Quick start (Ubuntu / Linux)
-
-1. Install the prerequisites (one time):
-
-   ```bash
-   sudo apt update && sudo apt install -y python3 python3-venv python3-pip curl unzip
-   # Node.js 20+ (Ubuntu's own apt version is often too old):
-   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
-   # Ollama (runs the AI model locally, installs as a background service):
-   curl -fsSL https://ollama.com/install.sh | sh
-   ```
-
-2. In the project folder, start everything with one command:
-
-   ```bash
-   chmod +x start.sh start-backend.sh start-frontend.sh   # only needed once, if the zip lost permissions
-   ./start.sh
-   ```
-
-   The first run installs packages, the voice and the AI model (several GB). Your browser opens
-   **http://localhost:5174**. Press **Ctrl+C** in the terminal to stop.
-
-   Prefer two terminals? Run `./start-backend.sh` in one and `./start-frontend.sh` in the other.
-
-NVIDIA GPU on Linux: install the NVIDIA driver; Ollama uses the GPU automatically (`nvidia-smi` should list it).
+> Optional: local image generation through Stable Diffusion WebUI / Forge (off by default; needs a GPU).
 
 ---
 
-## What runs locally
+## Screenshots
 
-| Part | What it uses | Cost | Notes |
-|---|---|---|---|
-| Teacher, plans, lessons, answers | **Gemma 4** via Ollama | free | Apache 2.0 licence. One model serves every role. |
-| Artwork feedback | **Gemma 4** (it reads images) | free | Two passes: describe what's visible → rate against explicit rubrics |
-| Voice | **Piper** with the `en_US-ljspeech-medium` voice | free | Piper is GPL-3.0; the LJSpeech dataset is public domain. Falls back to the Windows system voice. |
-| Tutor & demonstrations | Portrait + animated SVG demonstrations in the browser (motion) | free | Breathing zoom, floating card, pointer tilt; while speaking a paint-colour halo, nod and sound-wave follow the voice; thinking dots; a paint-splash burst for correct answers. The still photo isn't lip-synced (that looks uncanny) |
-| Landscape theme | Original painted SVG scene (no image files, no CDN) | free | Fonts are bundled, so the app works offline |
-| Pictures for lesson steps | Optional local **Stable Diffusion WebUI / Forge** | free | Off by default; needs a GPU. Without it, each step shows an animated demonstration |
-| Data | **SQLite** in `backend\data\` | free | Profile, plan, progress, artwork and cached lessons |
+> Screenshots were captured from the running app with **illustrative sample lesson text** (the AI model can't run in
+> the environment where they were taken). Your own lessons and feedback are written by the local model.
 
-### Pick the AI quality for your computer
+| | |
+|---|---|
+| <img src="assets/images/02-questions.jpg" alt="Question flow with the tutor portrait" width="440"><br>**Questions** — one at a time | <img src="assets/images/03-roadmap.jpg" alt="Animated roadmap with practice routine" width="440"><br>**Roadmap** — your path and daily routine |
+| <img src="assets/images/04-studio-step.jpg" alt="Lesson step with animated sphere-shading demonstration" width="440"><br>**Studio** — narrated step with animated demo | <img src="assets/images/06-sketch-pad.jpg" alt="Sketch pad with pencil grades" width="440"><br>**Sketch pad** — try it, then show G |
+| <img src="assets/images/07-value-lab.jpg" alt="Value matching game" width="440"><br>**Value lab** — train your eye | <img src="assets/images/08-quiz.jpg" alt="Quiz question answered correctly" width="440"><br>**Quiz** — with explanations |
+| <img src="assets/images/09-practice-feedback.jpg" alt="Photo feedback with strengths and improvements" width="440"><br>**Practice feedback** | <img src="assets/images/11-ai-quality.jpg" alt="AI quality picker with four levels" width="440"><br>**AI quality** — pick and download models |
 
-Open **Progress → Setup → AI quality**. It reads your RAM/GPU, recommends a level, and downloads anything missing
-with a progress bar — no editing files.
+More in [`assets/images/`](assets/images).
 
-| Level | Teacher model | Vision model (artwork feedback) | Needs |
+---
+
+## Technology stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 4, `motion` (Framer Motion), self-hosted Plus Jakarta Sans font |
+| Backend | Python 3.11+, FastAPI, Pydantic 2 + pydantic-settings, SQLAlchemy 2, Alembic, Uvicorn |
+| Database | SQLite (default, file in `backend/data/`); PostgreSQL supported (`psycopg`) |
+| Local AI | Ollama — Gemma 4 (`gemma4:e2b` / `e4b` / `12b` / `26b`), optional `qwen3-vl:8b` for vision |
+| Voice | Piper TTS (`piper-tts`, voice `en_US-ljspeech-medium`) or the browser's Web Speech API |
+| Images (optional) | Stable Diffusion WebUI / Forge HTTP API |
+| Other | Pillow (safe image handling), bcrypt + PyJWT (session tokens), httpx, psutil (hardware check) |
+| Optional cloud | Anthropic / OpenAI / any OpenAI-compatible server, per role — **not required** |
+| Tooling | pytest, Playwright (screenshots/QA), Docker Compose (optional) |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser["Browser — React app (localhost:5174)"]
+        UI["Pages: Home · Questions · Roadmap<br/>Studio · Practice · Progress"]
+        Voice["Voice hook<br/>Piper audio or system voice"]
+    end
+
+    subgraph API["FastAPI backend (localhost:8040)"]
+        Routers["Routers<br/>journey · learning · studio · account"]
+        Services["Services<br/>syllabus · lessons · analysis · roadmap · skills · tts · hardware"]
+        Curriculum["Curriculum engine<br/>skill graph · BM25 retrieval · sources"]
+        Router["Model router<br/>role → provider:model"]
+    end
+
+    DB[("SQLite<br/>backend/data")]
+    Files[("Uploaded artwork<br/>& cached audio")]
+    Ollama["Ollama<br/>localhost:11434<br/>Gemma 4 / Qwen3-VL"]
+    Piper["Piper voice model<br/>models/piper"]
+    SD["Stable Diffusion WebUI<br/>(optional)"]
+
+    UI -- "fetch /api/* (Vite proxy)" --> Routers
+    Voice -- "POST /api/tts" --> Routers
+    Routers --> Services
+    Services --> Curriculum
+    Services --> Router
+    Services --> DB
+    Services --> Files
+    Router --> Ollama
+    Router -.-> SD
+    Services --> Piper
+```
+
+The full write-up, including the lesson and feedback flows, is in [docs/system_architecture.md](docs/system_architecture.md).
+
+---
+
+## Project structure
+
+```
+ArtOfSoul.N/
+├── README.md                  ← you are here
+├── LICENSE                    MIT
+├── requirements.txt           → backend/requirements.txt
+├── .env.example               all settings, safe placeholders
+├── start.sh                   Ubuntu/Linux: start everything
+├── start-backend.sh/.bat      backend launcher (Linux / Windows)
+├── start-frontend.sh/.bat     frontend launcher (Linux / Windows)
+├── docker-compose.yml         optional: Postgres + Ollama + backend + frontend
+├── backend/
+│   ├── app/
+│   │   ├── main.py            FastAPI app, migrations, warm-up, error handlers
+│   │   ├── config.py          all settings (environment variables)
+│   │   ├── models.py          SQLAlchemy tables
+│   │   ├── api/               journey, learning, studio, account routers
+│   │   ├── ai/                model router, Ollama/SD/cloud providers, prompts, quality profiles
+│   │   ├── curriculum/        sources, skill graph, retrieval, seed
+│   │   └── services/          lessons, syllabus, analysis, roadmap, skills, tts, media, hardware…
+│   ├── migrations/            Alembic (0001–0003)
+│   ├── tests/                 31 pytest tests
+│   └── requirements*.txt
+├── frontend/
+│   ├── src/
+│   │   ├── pages/             Home, Start, RoadmapPage, Studio, Practice, Progress
+│   │   ├── components/        Avatar, Landscape, Demos, Interactive, ModelPicker, Shell, ui
+│   │   ├── lib/               api, session, speech, tutor, hooks, types
+│   │   └── assets/tutor.jpg   tutor portrait
+│   └── package.json
+├── models/                    local model notes (large files are not committed)
+├── assets/images/             screenshots
+└── docs/                      full documentation
+```
+
+---
+
+## Quick start
+
+### Requirements
+
+| | Minimum | Notes |
+|---|---|---|
+| Python | 3.11+ | `python3-venv` on Ubuntu |
+| Node.js | 20+ | Ubuntu's apt version is often too old — use NodeSource |
+| Ollama | latest | [ollama.com/download](https://ollama.com/download) |
+| RAM | 8 GB | 16 GB recommended; see [AI quality](#ai-quality) |
+| Disk | ~12 GB free | default model ≈ 10 GB, voice ≈ 60 MB |
+
+### Ubuntu / Linux
+
+```bash
+# 1. Prerequisites (one time)
+sudo apt update && sudo apt install -y python3 python3-venv python3-pip curl git
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Get the code
+git clone <your-repository-url> ArtOfSoul.N
+cd ArtOfSoul.N
+
+# 3. Start everything (first run installs packages, the voice and the AI model)
+chmod +x start.sh start-backend.sh start-frontend.sh
+./start.sh
+```
+
+Open **http://localhost:5174**. Press **Ctrl+C** to stop.
+
+### Windows
+
+1. Install [Python 3.11+](https://www.python.org/downloads/) (tick **Add python.exe to PATH**),
+   [Node.js LTS](https://nodejs.org/) and [Ollama](https://ollama.com/download).
+2. Clone or download this repository.
+3. Double-click **`start-backend.bat`** and wait for `Uvicorn running`.
+4. Double-click **`start-frontend.bat`** — the browser opens http://localhost:5174.
+
+### Manual start (any OS)
+
+```bash
+# Backend
+cd backend
+python -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+pip install -r requirements-voice.txt   # optional local voice
+cp ../.env.example .env              # Windows: copy ..\.env.example .env
+ollama pull gemma4:e4b
+uvicorn app.main:app --port 8040
+
+# Frontend (second terminal)
+cd frontend
+npm install
+npm run dev                          # http://localhost:5174 (proxies /api to :8040)
+```
+
+> **http://localhost:8040 is the API only** — opening it in a browser shows a short JSON message.
+> The app is at **http://localhost:5174**. Interactive API docs: **http://localhost:8040/docs**.
+
+Full guide: [docs/installation_guide.md](docs/installation_guide.md).
+
+---
+
+## Configuration
+
+All settings are environment variables read by `backend/app/config.py`. Copy `.env.example` to `backend/.env`; the
+defaults already work for local use. The most useful ones:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MODEL_TEACHER` … `MODEL_EXERCISE` | `ollama:gemma4:e4b` | Model per AI role (`provider:model`) |
+| `MODEL_VISION` | `ollama:gemma4:e4b` | Model that looks at artwork |
+| `MODEL_IMAGE` | `none:` | `sdwebui:default` to enable local image generation |
+| `OLLAMA_URL` | `http://localhost:11434` | Where Ollama runs |
+| `OLLAMA_THINK` | `false` | Gemma "thinking" mode (slower) |
+| `PREFETCH_NEXT_LESSON` | `true` | Write the next lesson in the background |
+| `TUTOR_NAME` | `G` | The name the AI uses for itself |
+| `DATABASE_URL` | SQLite in `backend/data/` | Any SQLAlchemy URL (PostgreSQL supported) |
+| `JWT_SECRET` | placeholder | Signs local session tokens and media links — set your own |
+
+Every variable is described in [docs/configuration_guide.md](docs/configuration_guide.md).
+
+### AI quality
+
+Choose in the app under **Progress → Setup → AI quality** (it recommends one for your hardware and downloads
+what's missing):
+
+| Level | Teacher | Vision | Needs |
 |---|---|---|---|
 | Fast | `gemma4:e2b` | `gemma4:e2b` | 8 GB RAM |
-| Balanced (default) | `gemma4:e4b` | `gemma4:e4b` | 16 GB RAM |
-| Accurate | `gemma4:12b` | `qwen3-vl:8b` (specialist vision model) | NVIDIA GPU 10 GB+, or 32 GB RAM |
-| Best | `gemma4:26b` | `gemma4:26b` | GPU 20 GB+, or 48 GB RAM |
+| Balanced *(default)* | `gemma4:e4b` | `gemma4:e4b` | 16 GB RAM |
+| Accurate | `gemma4:12b` | `qwen3-vl:8b` | NVIDIA GPU 10 GB+ or 32 GB RAM |
+| Best | `gemma4:26b` | `gemma4:26b` | GPU 20 GB+ or 48 GB RAM |
 
-"Accurate" uses two models, so switching between a lesson and a photo review may pause briefly while Ollama swaps
-them. Check each model's licence on its Ollama page.
+### Change the tutor
 
-Accuracy also comes from grounding, whatever the model: every lesson prompt includes the curriculum's own
-description and "what good looks like" for its skills, plus checked basics for your medium (for example "fat over
-lean" for oil, "the paper is your white" for watercolour, H vs B grades for graphite). The model is told to leave out
-anything it isn't sure of.
-
-What makes it faster:
-
-- **Thinking mode is off** (`OLLAMA_THINK=false`). Gemma 4 can "reason" before answering, which is several times
-  slower on a CPU and isn't needed for these short tasks.
-- **The model is loaded at start-up** and kept in memory for an hour, so the first lesson doesn't also pay load time.
-- **The next lesson is written in the background** while you study the current one (and lesson 1 right after your
-  plan is made), so clicking "Next lesson" is usually instant. Turn off with `PREFETCH_NEXT_LESSON=false`.
-- **Lessons are cached** — each is written once and replays instantly afterwards.
-- **Prompts are kept short** and plans are 6–10 lessons, because on a CPU reading a long prompt takes real time.
-
-On a laptop without a GPU the very first plan still takes a few minutes, and a photo review a few minutes.
-
-### Optional: generated pictures
-
-Local image generation is only practical with an NVIDIA GPU (≈6 GB+ VRAM). Install
-[Stable Diffusion WebUI Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge), start it with `--api`, then
-set `MODEL_IMAGE=sdwebui:default` in `backend\.env`. Check the licence of whichever checkpoint you install. Generated
-pictures are always labelled "AI-generated reference" and cached per lesson step.
-
-### About "videos"
-
-Each lesson can be played as a **narrated lesson**: the teacher speaks each part while animated demonstrations (or
-generated pictures) play, advancing automatically. It's a narrated, animated slide sequence — not a generated video
-file, and the app labels it that way. The lesson format (ordered steps, each with narration and a visual prompt) is
-what a future frame-sequence video generator would consume.
+Replace `frontend/src/assets/tutor.jpg`, change the name in `frontend/src/lib/tutor.ts`, and set `TUTOR_NAME` in
+`backend/.env`.
 
 ---
 
-## Pages
+## API
 
-| Page | What happens |
-|---|---|
-| **Home** | Meet G; one button: *Start My Art Journey* |
-| **Questions** | One friendly question at a time: name, pencil or painting, paint type, level, what you love to draw, goal, daily time, techniques. Custom answers allowed |
-| **Roadmap** | Animated path of stages and lessons (done / you are here / upcoming). Tap a lesson for details. Shows your daily practice routine and any changes made from your practice |
-| **Learning studio** | G introduces the lesson, explains the idea, then you flip key-word cards, try each step on the sketch pad, play the order challenge and value or colour lab, take a quick quiz and get a practice task. Ask G questions any time |
-| **Practice** | Upload a photo → feedback: what went well, what to improve and why, next steps, next exercise. Results update the roadmap |
-| **Progress** | Continue where you left off; lessons, checks and reviewed pieces; skills; and a setup check for this computer |
+FastAPI serves interactive documentation while the backend runs:
+
+- **Swagger UI:** http://localhost:8040/docs
+- **ReDoc:** http://localhost:8040/redoc
+- **OpenAPI JSON:** http://localhost:8040/openapi.json
+
+Endpoints used by the current app (all under `/api`, JSON unless noted):
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/local/session` | Get a session for the single local learner (no sign-up) |
+| `GET` | `/journey/questions` | The onboarding questions |
+| `POST` | `/journey/answers` | Save answers to the learner profile |
+| `POST` | `/syllabus` | Build (or rebuild) the personalised plan |
+| `GET` | `/roadmap` | Stages, lessons, skills and change history |
+| `GET`/`POST` | `/lessons/{id}/script` | Read / write the cached lesson script |
+| `POST` | `/lessons/{id}/check` | Answer a quiz question |
+| `POST` | `/lessons/{id}/activity` | Record a game, lab or sketch result |
+| `PATCH` | `/lessons/{id}` | Start, complete or restore a lesson |
+| `POST` | `/artworks` | Upload a photo (multipart) |
+| `POST` | `/artworks/{id}/analyze` | Vision + rubric feedback |
+| `POST` | `/conversations/{id}/messages` | Ask the tutor a question |
+| `POST` | `/tts` | Speech audio (WAV) from the local voice |
+| `GET` | `/progress` | Progress, streak, quiz and activity stats |
+| `GET` | `/system/hardware`, `/system/models` | Hardware check and AI quality levels |
+
+The backend also contains a fuller set of endpoints (accounts, curriculum search, skills, exercises, references,
+palettes…) from the project's first, more advanced version. All 61 operations are documented in
+[docs/api_documentation.md](docs/api_documentation.md).
 
 ---
 
-## How it adapts
+## Testing
 
-- **Plan:** built from your answers and an original skill graph (42 skills with prerequisites, informed by published
-  university course descriptions listed in `backend/app/curriculum/sources.py`). Beginners get foundations first;
-  experienced artists skip them. Lessons are always ordered so prerequisites come first.
-- **Feedback → roadmap:** each artwork rating must cite something the vision model actually observed. Two weak
-  results on a skill add a focused-practice lesson before anything that depends on it; repeated solid results let
-  you skip ahead. Every change is recorded with its reason.
-- **Honesty rules:** if a photo can't be judged (glare, blur, wrong subject) nothing is recorded and you're asked to
-  retake it. No feature substitutes canned text for a model call; if the AI isn't running you get a clear message.
+```bash
+cd backend
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest -q                       # 31 tests, ~5 s
+# against PostgreSQL:
+TEST_DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/db pytest -q
+
+cd ../frontend
+npm run build                   # TypeScript type-check + production build
+```
+
+The tests replace the AI **only at the provider boundary** with a scripted fake, so routing, validation,
+persistence, adaptive-roadmap rules and error handling all run for real. The Ollama and Stable Diffusion adapters are
+tested against mocked HTTP responses. Real model output quality is not covered by automated tests.
 
 ---
 
@@ -163,48 +352,60 @@ what a future frame-sequence video generator would consume.
 
 | Problem | Fix |
 |---|---|
-| `'irm' is not recognized` | That command is for PowerShell, not Command Prompt — or use the installer from ollama.com/download |
-| "Ollama isn't running" | Windows: start the Ollama app (llama icon in the tray). Ubuntu: `sudo systemctl start ollama` (or `ollama serve`) |
-| Ubuntu: `python3 -m venv` fails | `sudo apt install python3-venv` |
-| Ubuntu: frontend says Node is too old | Install Node 22 from NodeSource (see Quick start) |
-| Ubuntu: `Permission denied` running `./start.sh` | `chmod +x start.sh start-backend.sh start-frontend.sh` |
-| "The model 'gemma4:e4b' isn't downloaded" | Run `ollama pull gemma4:e4b` |
-| Plan or lesson fails with "didn't return valid structured output" | Press *Try again*; if it repeats, use a larger model (`gemma4:12b`) |
-| Very slow replies | Use `gemma4:e2b`, close other heavy apps, or use a GPU |
-| No voice | Check *Voice on* in the studio; with Piper missing the Windows voice is used. Reinstall with `pip install -r backend\requirements-voice.txt` |
-| "I can't reach the ArtOfSoul.N server" | Run `start-backend.bat` and wait for `Uvicorn running` |
-| Port already in use | Close the other program using 8040 / 5174 |
+| Browser shows `{"message": …}` or 404 at :8040 | That's the API. Open **http://localhost:5174** |
+| "Ollama isn't running" | Windows: start the Ollama app. Linux: `sudo systemctl start ollama` |
+| "The model … isn't downloaded" | `ollama pull gemma4:e4b`, or use the AI quality picker |
+| `'irm' is not recognized` (Windows) | That command is for PowerShell, not Command Prompt — or use the installer |
+| Very slow lessons | Choose **Fast**, close heavy apps, or use a GPU; the next lesson is prefetched while you study |
+| "didn't return valid structured output" | Press *Try again*; if frequent, choose a larger model |
+| No voice | Check *Voice on*; without Piper the system voice is used |
+| `Permission denied: ./start.sh` | `chmod +x start.sh start-backend.sh start-frontend.sh` |
+| Node too old | Install Node 22 from NodeSource |
+
+Real issues met during development and how they were fixed: [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ---
 
-## For developers
+## Documentation
 
-```
-backend/   FastAPI · SQLAlchemy · Alembic · SQLite (PostgreSQL also supported)
-  app/api/journey.py        local session, questions, lesson scripts, checks, step visuals, TTS, hardware, progress
-  app/ai/local.py           Ollama (JSON-schema constrained output, retries) · Stable Diffusion WebUI
-  app/services/lessons.py   cached lesson scripts, demo fallback, understanding checks
-  app/services/tts.py       Piper voice with on-disk cache
-  app/curriculum/           skill graph, BM25 retrieval, institutional source records
-frontend/  React 19 · Vite · TypeScript · Tailwind v4 · motion (Framer Motion) · self-hosted fonts (no CDN)
-  src/components/Avatar.tsx  animated teacher   src/components/Demos.tsx  12 animated demonstrations
-  src/lib/speech.ts          Piper/system voice with lip-sync level
-models/    local model notes (large files are never committed)
-```
+| Document | Contents |
+|---|---|
+| [Project overview](docs/project_overview.md) | Purpose, users, features, benefits, how the project evolved |
+| [System architecture](docs/system_architecture.md) | Components, diagrams, data flows, database |
+| [Installation guide](docs/installation_guide.md) | Step by step for Ubuntu, Windows, manual and Docker |
+| [Backend](docs/backend_documentation.md) | Structure, services, AI layer, validation, errors |
+| [Frontend](docs/frontend_documentation.md) | Pages, components, styling, API client |
+| [API](docs/api_documentation.md) | Every endpoint with requests, responses and errors |
+| [Configuration](docs/configuration_guide.md) | Every environment variable |
+| [Troubleshooting](docs/troubleshooting.md) | Problems and fixes |
+| [Future enhancements](docs/future_enhancements.md) | Proposed, not yet implemented |
 
-Manual start: `cd backend && pip install -r requirements-dev.txt && uvicorn app.main:app --port 8040`, then
-`cd frontend && npm install && npm run dev`. Tests: `cd backend && pytest -q`.
+---
 
-Docker (`docker compose up -d --build`, then `docker compose exec ollama ollama pull gemma4:e4b`) runs the same
-stack with PostgreSQL; it uses the browser voice and is CPU-only unless you enable GPU support.
+## Roadmap
 
-Optional paid/cloud providers (Anthropic, OpenAI, any OpenAI-compatible server) can still be set per role in `.env`;
-none is required.
+Ideas such as streaming replies, generated video lessons, mobile packaging and more languages are listed in
+[docs/future_enhancements.md](docs/future_enhancements.md). None of them is implemented yet.
 
-### Verified / not verified
+---
 
-- **Verified here:** 23 backend tests (SQLite and PostgreSQL), including the full journey with the AI replaced at
-  the provider boundary by a scripted fake, the Ollama/Stable Diffusion adapters against mocked HTTP responses,
-  migrations upgrading an existing database, and a headless-browser walkthrough of every page on desktop and mobile.
-- **Not verified here:** real Gemma 4 output quality, real Piper audio, and real image generation — Ollama, Piper
-  voices and model downloads are blocked in the build environment. Try one full lesson on your machine.
+## Contributing
+
+1. Fork the repository and create a branch: `git checkout -b feature/my-change`.
+2. Keep the app working offline and free by default — new AI features should use local models or be optional.
+3. Run `pytest -q` in `backend/` and `npm run build` in `frontend/` before opening a pull request.
+4. Describe what changed and how you tested it.
+
+---
+
+## License and acknowledgements
+
+Released under the [MIT License](LICENSE).
+
+- AI models run through [Ollama](https://ollama.com): Google **Gemma 4** (Apache 2.0) and, optionally, **Qwen3-VL** —
+  check each model's licence on its Ollama page.
+- Voice: [Piper](https://github.com/OHF-Voice/piper1-gpl) (GPL-3.0, installed separately, not bundled) with the
+  `en_US-ljspeech-medium` voice trained on the public-domain LJ Speech dataset.
+- Curriculum research: the published course descriptions listed in `backend/app/curriculum/sources.py` informed the
+  original ArtOfSoul.N curriculum. No institution endorses or certifies this project.
+- Landscape illustration, demonstrations and logo are original SVG artwork made for this project.

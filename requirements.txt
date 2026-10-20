@@ -1,0 +1,5 @@
+# ArtOfSoul.N backend dependencies.
+# The backend's own lists live in backend/; this file lets you install from the repository root:
+#   pip install -r requirements.txt
+# Optional extras: backend/requirements-voice.txt (Piper voice), backend/requirements-dev.txt (pytest).
+-r backend/requirements.txt
