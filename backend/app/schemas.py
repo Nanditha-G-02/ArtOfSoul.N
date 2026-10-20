@@ -42,7 +42,7 @@ class DiagnosticIn(BaseModel):
 
 
 class SyllabusIn(BaseModel):
-    goal: str = Field(min_length=8, max_length=600)
+    goal: str = Field(min_length=2, max_length=600)
 
 
 class LessonStatusIn(BaseModel):

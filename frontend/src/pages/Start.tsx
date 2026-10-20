@@ -64,7 +64,11 @@ export default function Start() {
         artwork_types: a.artwork_types ?? [], goal: a.goal, daily_minutes: a.daily_minutes, techniques: a.techniques ?? [],
       });
       setProfile(p);
-      await api.post("/api/syllabus", { goal: String(a.goal) });
+      // Give the planner the full picture, so even a short goal like "faces" becomes a clear brief.
+      const what = a.track === "painting" ? `${a.medium} painting` : "pencil drawing";
+      const loves = (a.artwork_types as string[] | undefined)?.length ? ` I love drawing ${(a.artwork_types as string[]).join(", ")}.` : "";
+      const improve = (a.techniques as string[] | undefined)?.length ? ` I want to improve ${(a.techniques as string[]).join(", ")}.` : "";
+      await api.post("/api/syllabus", { goal: `${String(a.goal).trim()} — ${what}, ${a.level} level.${loves}${improve}`.slice(0, 600) });
       nav("/roadmap", { state: { fresh: true } });
     } catch (e) { setError((e as Error).message); setPhase("error"); voice.stop(); }
   }

@@ -184,3 +184,9 @@ def test_model_profiles_switch_and_pull_is_restricted(client, monkeypatch):
         profiles._file().unlink(missing_ok=True)
     assert get_router().spec("teacher") == ("ollama", "gemma4:e4b")
     assert profiles.recommend(8, 0) == "fast" and profiles.recommend(16, 0) == "balanced" and profiles.recommend(16, 12) == "accurate"
+
+
+def test_short_goal_is_accepted(client, fake):
+    h = local(client)
+    client.post("/api/journey/answers", headers=h, json={"track": "pencil", "level": "beginner", "goal": "faces", "daily_minutes": 15})
+    assert client.post("/api/syllabus", headers=h, json={"goal": "faces"}).status_code == 200
