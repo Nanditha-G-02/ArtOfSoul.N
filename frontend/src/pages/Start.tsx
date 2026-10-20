@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "../components/Avatar";
 import { Backdrop, Brand } from "../components/Shell";
@@ -39,13 +39,19 @@ export default function Start() {
   const canNext = q?.kind === "text" ? (q.id === "name" || String(value ?? "").trim().length >= 3)
     : q?.kind === "multi" ? (Array.isArray(value) && value.length > 0) || custom.trim().length > 1 : value !== undefined;
 
+  const advancing = useRef(false);  // ignore extra clicks while moving to the next question
+
   function choose(v: string | number) {
     if (q.kind === "multi") {
       const cur = (answers[q.id] as (string | number)[]) ?? [];
       setAnswers({ ...answers, [q.id]: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] });
     } else {
-      setAnswers({ ...answers, [q.id]: v });
-      setTimeout(() => setI((n) => n + 1), 280);
+      if (advancing.current) return;
+      advancing.current = true;
+      const updated = { ...answers, [q.id]: v };
+      if (q.id === "track" && v !== "painting") delete updated.medium;  // switching to pencil clears the paint type
+      setAnswers(updated);
+      setTimeout(() => { setI((n) => n + 1); advancing.current = false; }, 280);
     }
   }
 
@@ -56,7 +62,23 @@ export default function Start() {
     await build(a);
   }
 
+  const REQUIRED = ["track", "medium", "level", "goal", "daily_minutes"];
+
+  /** First required question (among those that apply) that still has no answer, or -1. */
+  function firstMissing(a: Record<string, unknown>): number {
+    const applies = qs.filter((qq) => !qq.when || Object.entries(qq.when).every(([k, v]) => a[k] === v));
+    const idx = applies.findIndex((qq) => REQUIRED.includes(qq.id) && (a[qq.id] === undefined || a[qq.id] === "" ||
+      (qq.id === "goal" && String(a[qq.id]).trim().length < 2)));
+    return idx;
+  }
+
   async function build(a: Record<string, unknown>) {
+    const missing = firstMissing(a);
+    if (missing >= 0) {  // send the learner back to the question instead of failing
+      setPhase("ask"); setError(null); setI(missing);
+      voice.speak("Oops, I still need one answer from you.");
+      return;
+    }
     setPhase("building"); setError(null); voice.speak("Lovely. Give me a moment while I plan your lessons.");
     try {
       const p = await api.post<Profile>("/api/journey/answers", {
