@@ -127,3 +127,60 @@ def test_unexpected_errors_return_friendly_message(client, fake, monkeypatch):
     with TestClient(app, raise_server_exceptions=False) as c:
         r = c.post(f"/api/lessons/{syl['lessons'][-1]['id']}/script", headers=h)
     assert r.status_code == 500 and "try again" in r.json()["detail"]
+
+
+def test_quiz_terms_activities_streak_and_grounding(client, fake):
+    h = local(client)
+    client.post("/api/journey/answers", headers=h, json={"track": "painting", "medium": "watercolor", "level": "intermediate",
+                                                         "goal": "Glowing watercolour landscapes", "daily_minutes": 30})
+    syl = client.post("/api/syllabus", headers=h, json={"goal": "Glowing watercolour landscapes"}).json()
+    lid = syl["lessons"][0]["id"]
+    sc = client.post(f"/api/lessons/{lid}/script", headers=h).json()["script"]
+    assert len(sc["quiz"]) == 2 and sc["terms"] == [{"term": "Value", "meaning": "How light or dark a tone is."}]
+    r1 = client.post(f"/api/lessons/{lid}/check", headers=h, json={"choice": 0, "question": 1}).json()
+    r2 = client.post(f"/api/lessons/{lid}/check", headers=h, json={"choice": 1, "question": 1}).json()
+    assert r1["correct"] and r1["first_attempt"] and not r2["first_attempt"]
+    assert client.post(f"/api/lessons/{lid}/check", headers=h, json={"choice": 0, "question": 4}).status_code == 422
+    assert client.post(f"/api/lessons/{lid}/activity", headers=h, json={"kind": "color_mix", "score": 4, "total": 5}).json()["ok"]
+    assert client.post(f"/api/lessons/{lid}/activity", headers=h, json={"kind": "hack"}).status_code == 422
+    prog = client.get("/api/progress", headers=h).json()
+    assert prog["streak_days"] >= 1 and prog["activities"] >= 1 and prog["checks"]["answered"] >= 1
+
+
+def test_lesson_prompt_is_grounded_in_medium_facts(client, fake):
+    import json
+    seen = []
+    orig = fake.json
+
+    def spy(model, system, messages, schema_name, schema, max_tokens):
+        if schema_name == "lesson_script":
+            seen.append(json.loads(messages[-1]["content"]))
+        return orig(model, system, messages, schema_name, schema, max_tokens)
+    fake.json = spy
+    h = local(client)
+    client.post("/api/journey/answers", headers=h, json={"track": "painting", "medium": "watercolor", "level": "beginner",
+                                                         "goal": "Paint flowers in watercolour", "daily_minutes": 30})
+    syl = client.post("/api/syllabus", headers=h, json={"goal": "Paint flowers in watercolour"}).json()
+    client.post(f"/api/lessons/{syl['lessons'][-1]['id']}/script", headers=h)
+    assert any("paper is the lightest value" in f for f in seen[0]["MEDIUM_FACTS"])
+    assert seen[0]["SKILLS"] and "what_good_looks_like" in seen[0]["SKILLS"][0]
+
+
+def test_model_profiles_switch_and_pull_is_restricted(client, monkeypatch):
+    from app.ai import profiles
+    from app.ai.router import get_router
+    h = local(client)
+    info = client.get("/api/system/models").json()
+    assert {p["id"] for p in info["profiles"]} == {"fast", "balanced", "accurate", "best"}
+    acc = next(p for p in info["profiles"] if p["id"] == "accurate")
+    assert acc["vision"] == "qwen3-vl:8b"
+    try:
+        client.post("/api/system/models/profile", headers=h, json={"profile": "accurate"})
+        assert get_router().spec("vision") == ("ollama", "qwen3-vl:8b")
+        assert get_router().spec("teacher") == ("ollama", "gemma4:12b")
+        assert client.post("/api/system/models/pull", headers=h, json={"model": "evil:latest"}).status_code == 422
+        assert client.post("/api/system/models/profile", headers=h, json={"profile": "nope"}).status_code == 422
+    finally:
+        profiles._file().unlink(missing_ok=True)
+    assert get_router().spec("teacher") == ("ollama", "gemma4:e4b")
+    assert profiles.recommend(8, 0) == "fast" and profiles.recommend(16, 0) == "balanced" and profiles.recommend(16, 12) == "accurate"

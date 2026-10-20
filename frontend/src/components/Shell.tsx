@@ -4,10 +4,21 @@ import Landscape from "./Landscape";
 
 const LINKS: [string, string][] = [["/roadmap", "Roadmap"], ["/studio", "Studio"], ["/practice", "Practice"], ["/progress", "Progress"]];
 
+/** Artist's palette with a brush — the ArtOfSoul.N mark. */
+export function PaletteMark({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <path d="M16 3.5C8.5 3.5 3 8.6 3 15.2c0 6.8 5.6 12.8 12.6 12.8 2.3 0 3.4-1.2 3.4-2.6 0-1.6-1.5-2.2-1.5-3.8 0-1.5 1.2-2.4 2.8-2.4h3.3c3.5 0 5.4-2.3 5.4-5.6C29 8 23.5 3.5 16 3.5Z" fill="#16161d" />
+      <circle cx="9.5" cy="13.5" r="2.3" fill="#ef6a3f" /><circle cx="14" cy="8.6" r="2.3" fill="#f2c230" />
+      <circle cx="20.3" cy="8.8" r="2.3" fill="#8a6fd0" /><circle cx="9.8" cy="20" r="2.3" fill="#7fb35a" />
+    </svg>
+  );
+}
+
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link to="/" className="flex items-center gap-2" aria-label="ArtOfSoul.N home">
-      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden><path d="M16 3c6 6 9 10 9 15a9 9 0 0 1-18 0c0-5 3-9 9-15Z" fill="#ef6a3f" /><circle cx="16" cy="19" r="4" fill="#fff" opacity=".85" /></svg>
+      <PaletteMark />
       <span className={`${compact ? "hidden sm:inline" : ""} text-[15px] font-bold tracking-tight`}>ArtOfSoul.N</span>
     </Link>
   );

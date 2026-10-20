@@ -358,6 +358,17 @@ class LessonContent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class QuizAnswer(Base):
+    """First attempt at each quiz question of a lesson (later attempts are practice, not evidence)."""
+    __tablename__ = "quiz_answers"
+    __table_args__ = (UniqueConstraint("lesson_id", "question_index"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id", ondelete="CASCADE"), index=True)
+    question_index: Mapped[int] = mapped_column(Integer)
+    correct: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class GeneratedReference(Base):
     __tablename__ = "generated_references"
     id: Mapped[int] = mapped_column(primary_key=True)

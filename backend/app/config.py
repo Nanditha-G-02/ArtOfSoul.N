@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5174,http://127.0.0.1:5174"
     rate_limit_ai_per_minute: int = 12
 
+    tutor_name: str = "G"
+
     # --- Local single-user mode: no sign-up; the browser gets a session for the one local learner ---
     local_mode: bool = True
 

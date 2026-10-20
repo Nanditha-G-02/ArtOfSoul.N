@@ -1,12 +1,28 @@
 # ArtOfSoul.N — your personal AI art teacher
 
 A calm, painterly art-teaching app that runs **entirely on your own computer, for free**. You answer a few
-questions, the AI builds a personalised pencil-drawing or painting plan, and Muse — your tutor, with a voice and a
+questions, the AI builds a personalised pencil-drawing or painting plan, and G — your tutor, with a voice and a
 portrait that comes alive while she speaks — walks you through each lesson, checks your understanding, and gives
 feedback on photos of your practice.
 
-**Change the tutor:** replace `frontend/src/assets/tutor.jpg` (a square-ish portrait works best) and edit the name in
-`frontend/src/lib/tutor.ts`.
+**Change the tutor:** replace `frontend/src/assets/tutor.jpg` (a square-ish portrait works best), edit the name in
+`frontend/src/lib/tutor.ts`, and set `TUTOR_NAME` in `backend/.env` so the AI uses the same name.
+
+### Interactive lessons
+
+Every lesson mixes listening with doing:
+
+| Part | What you do |
+|---|---|
+| Key words | Flip flashcards for the lesson's terms |
+| Steps | Watch the animated demonstration, then **try it on the sketch pad** (pencil grades 2H–6B, or a paint palette; pen pressure supported) and send the sketch to G for quick feedback |
+| Order challenge | Put the lesson's steps back in the right order |
+| Value lab (pencil) | A 5-round game matching tones on a 9-step value scale — the surrounding tone tries to fool your eye |
+| Colour lab (painting) | Mix target colours from a limited palette by adding "parts" of pigment; mixing behaves like paint (yellow + blue goes green), and watercolour uses water instead of white |
+| Quiz | Three questions, multiple choice or true/false, with explanations |
+| Practice | A real-world task, then photo feedback |
+
+Narrated playback pauses at each interactive part. Progress shows a daily streak and activities played.
 
 **Home → Questions → Roadmap → Learning studio → Practice → Progress**
 
@@ -64,21 +80,30 @@ NVIDIA GPU on Linux: install the NVIDIA driver; Ollama uses the GPU automaticall
 | Teacher, plans, lessons, answers | **Gemma 4** via Ollama | free | Apache 2.0 licence. One model serves every role. |
 | Artwork feedback | **Gemma 4** (it reads images) | free | Two passes: describe what's visible → rate against explicit rubrics |
 | Voice | **Piper** with the `en_US-ljspeech-medium` voice | free | Piper is GPL-3.0; the LJSpeech dataset is public domain. Falls back to the Windows system voice. |
-| Tutor & demonstrations | Portrait + animated SVG demonstrations in the browser (motion) | free | While speaking, a halo and live sound-wave follow the voice level. A still photo isn't lip-synced (that looks uncanny) |
+| Tutor & demonstrations | Portrait + animated SVG demonstrations in the browser (motion) | free | Breathing zoom, floating card, pointer tilt; while speaking a paint-colour halo, nod and sound-wave follow the voice; thinking dots; a paint-splash burst for correct answers. The still photo isn't lip-synced (that looks uncanny) |
 | Landscape theme | Original painted SVG scene (no image files, no CDN) | free | Fonts are bundled, so the app works offline |
 | Pictures for lesson steps | Optional local **Stable Diffusion WebUI / Forge** | free | Off by default; needs a GPU. Without it, each step shows an animated demonstration |
 | Data | **SQLite** in `backend\data\` | free | Profile, plan, progress, artwork and cached lessons |
 
-### Pick the model for your computer
+### Pick the AI quality for your computer
 
-The **Progress → Setup** panel reads your RAM/GPU and recommends one. To switch, run `ollama pull <model>` and change
-the six `MODEL_*` lines in `backend\.env`.
+Open **Progress → Setup → AI quality**. It reads your RAM/GPU, recommends a level, and downloads anything missing
+with a progress bar — no editing files.
 
-| Your machine | Model | Download |
-|---|---|---|
-| 8 GB RAM | `gemma4:e2b` | ~7 GB |
-| 16 GB RAM | `gemma4:e4b` (default) | ~10 GB |
-| NVIDIA GPU 10 GB+ or 32 GB RAM | `gemma4:12b` | ~8 GB |
+| Level | Teacher model | Vision model (artwork feedback) | Needs |
+|---|---|---|---|
+| Fast | `gemma4:e2b` | `gemma4:e2b` | 8 GB RAM |
+| Balanced (default) | `gemma4:e4b` | `gemma4:e4b` | 16 GB RAM |
+| Accurate | `gemma4:12b` | `qwen3-vl:8b` (specialist vision model) | NVIDIA GPU 10 GB+, or 32 GB RAM |
+| Best | `gemma4:26b` | `gemma4:26b` | GPU 20 GB+, or 48 GB RAM |
+
+"Accurate" uses two models, so switching between a lesson and a photo review may pause briefly while Ollama swaps
+them. Check each model's licence on its Ollama page.
+
+Accuracy also comes from grounding, whatever the model: every lesson prompt includes the curriculum's own
+description and "what good looks like" for its skills, plus checked basics for your medium (for example "fat over
+lean" for oil, "the paper is your white" for watercolour, H vs B grades for graphite). The model is told to leave out
+anything it isn't sure of.
 
 What makes it faster:
 
@@ -112,10 +137,10 @@ what a future frame-sequence video generator would consume.
 
 | Page | What happens |
 |---|---|
-| **Home** | Meet Muse; one button: *Start My Art Journey* |
+| **Home** | Meet G; one button: *Start My Art Journey* |
 | **Questions** | One friendly question at a time: name, pencil or painting, paint type, level, what you love to draw, goal, daily time, techniques. Custom answers allowed |
 | **Roadmap** | Animated path of stages and lessons (done / you are here / upcoming). Tap a lesson for details. Shows your daily practice routine and any changes made from your practice |
-| **Learning studio** | Muse introduces the lesson, explains the idea, walks through each step with an animated demonstration, asks a quick check question, then sets a practice task. Ask Muse questions any time |
+| **Learning studio** | G introduces the lesson, explains the idea, then you flip key-word cards, try each step on the sketch pad, play the order challenge and value or colour lab, take a quick quiz and get a practice task. Ask G questions any time |
 | **Practice** | Upload a photo → feedback: what went well, what to improve and why, next steps, next exercise. Results update the roadmap |
 | **Progress** | Continue where you left off; lessons, checks and reviewed pieces; skills; and a setup check for this computer |
 

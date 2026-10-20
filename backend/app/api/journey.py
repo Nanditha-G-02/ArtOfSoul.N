@@ -4,7 +4,7 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import models as m
@@ -142,12 +142,25 @@ def _visuals(db: Session, user: m.User, lesson: m.Lesson) -> dict:
 
 class CheckIn(BaseModel):
     choice: int = Field(ge=0, le=5)
+    question: int = Field(default=0, ge=0, le=5)
+
+
+class ActivityIn(BaseModel):
+    kind: str = Field(pattern="^(value_match|color_mix|order_steps|flashcards|sketch)$")
+    score: int | None = Field(default=None, ge=0, le=100)
+    total: int | None = Field(default=None, ge=1, le=100)
+
+
+@router.post("/lessons/{lesson_id}/activity")
+def activity(lesson_id: int, body: ActivityIn, user: m.User = Depends(current_user), db: Session = Depends(get_db)):
+    lessons.record_activity(db, user, _lesson(db, user, lesson_id), body.kind, body.score, body.total)
+    return {"ok": True}
 
 
 @router.post("/lessons/{lesson_id}/check")
 def check(lesson_id: int, body: CheckIn, user: m.User = Depends(current_user), db: Session = Depends(get_db)):
     try:
-        return lessons.check_answer(db, user, _lesson(db, user, lesson_id), body.choice)
+        return lessons.check_answer(db, user, _lesson(db, user, lesson_id), body.choice, body.question)
     except ValueError as e:
         raise HTTPException(422, str(e))
 
@@ -184,6 +197,59 @@ def hw():
     return hardware.report()
 
 
+@router.get("/system/models")
+def models_info():
+    from ..ai import profiles
+    from ..ai.router import get_router
+    router = get_router()
+    installed: list[str] = []
+    try:
+        installed = router.provider("ollama").available_models() or []  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    names = set(installed) | {n.removesuffix(":latest") for n in installed}
+    hw_ = hardware.report()
+    return {"profiles": [{"id": k, **v, "installed": {v["text"]: v["text"] in names, v["vision"]: v["vision"] in names}}
+                         for k, v in profiles.PROFILES.items()],
+            "current": profiles.load().get("profile"), "recommended": hw_["recommended_profile"],
+            "roles": {r: router.label(r) for r in ("teacher", "vision", "assessment")}, "ollama_running": bool(installed)}
+
+
+class ProfileIn(BaseModel):
+    profile: str
+
+
+@router.post("/system/models/profile")
+def set_profile(body: ProfileIn, user: m.User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..ai import profiles
+    try:
+        data = profiles.save(body.profile)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    log(db, user.id, "settings", f"Switched AI quality to {profiles.PROFILES[body.profile]['label']}")
+    db.commit()
+    return data
+
+
+class PullIn(BaseModel):
+    model: str
+
+
+@router.post("/system/models/pull")
+def pull_model(body: PullIn, user: m.User = Depends(current_user)):
+    import json as _json
+
+    from fastapi.responses import StreamingResponse
+
+    from ..ai import profiles
+    from ..ai.router import get_router
+    if body.model not in profiles.ALLOWED_MODELS:
+        raise HTTPException(422, "Only the models listed in the app can be downloaded from here.")
+    provider = get_router().provider("ollama")
+    return StreamingResponse((_json.dumps(ev) + "\n" for ev in provider.pull(body.model)),  # type: ignore[attr-defined]
+                             media_type="application/x-ndjson")
+
+
 @router.get("/progress")
 def progress(user: m.User = Depends(current_user), db: Session = Depends(get_db)):
     syl = active_syllabus(db, user.id)
@@ -192,8 +258,18 @@ def progress(user: m.User = Depends(current_user), db: Session = Depends(get_db)
     names = dict(db.execute(select(m.Skill.slug, m.Skill.name)).all())
     lessons_ = sorted(syl.lessons, key=lambda x: x.position) if syl else []
     done = [l for l in lessons_ if l.status == "completed"]
-    checks = db.execute(select(m.LessonContent.quiz_correct).join(m.Lesson).where(
-        m.Lesson.syllabus_id == (syl.id if syl else -1), m.LessonContent.quiz_correct.is_not(None))).scalars().all()
+    checks = db.execute(select(m.QuizAnswer.correct).join(m.Lesson).where(
+        m.Lesson.syllabus_id == (syl.id if syl else -1))).scalars().all()
+    days = {d.date() for d in db.scalars(select(m.ActivityRecord.created_at).where(
+        m.ActivityRecord.user_id == user.id, m.ActivityRecord.kind.in_(["lesson", "check", "activity", "analysis", "teacher"])))}
+    from datetime import date, timedelta
+    streak, day = 0, date.today()
+    if day not in days:
+        day -= timedelta(days=1)  # today not practised yet: the streak can still continue
+    while day in days:
+        streak, day = streak + 1, day - timedelta(days=1)
+    activities = db.scalar(select(func.count(m.ActivityRecord.id)).where(m.ActivityRecord.user_id == user.id,
+                                                                         m.ActivityRecord.kind == "activity")) or 0
     analyses = db.scalars(select(m.ArtworkAnalysis).where(m.ArtworkAnalysis.user_id == user.id)
                           .order_by(m.ArtworkAnalysis.created_at.desc()).limit(6))
     return {
@@ -202,6 +278,7 @@ def progress(user: m.User = Depends(current_user), db: Session = Depends(get_db)
         "current_lesson": ser.lesson(lesson) if lesson else None,
         "completed_lessons": [{"id": l.id, "title": l.title, "completed_at": l.completed_at} for l in done],
         "checks": {"answered": len(checks), "correct": sum(1 for c in checks if c)},
+        "streak_days": streak, "activities": activities,
         "skills": [{"slug": s, "name": names.get(s, s), "status": st} for s, st in statuses.items()],
         "recent_feedback": [{"id": a.id, "artwork": ser.artwork(db.get(m.Artwork, a.artwork_id)),
                              "suitable": a.image_suitable, "next": a.next_milestone, "created_at": a.created_at} for a in analyses],

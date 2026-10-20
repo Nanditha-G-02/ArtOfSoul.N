@@ -31,19 +31,19 @@ def report() -> dict:
         ram, free_disk = None, None
     gpu = _gpu()
     vram = gpu["vram_gb"] if gpu else 0
-    if vram >= 10 or (ram or 0) >= 30:
-        rec, why = "gemma4:12b", "Enough memory for the larger, more accurate model."
-    elif (ram or 0) >= 14 or vram >= 6:
-        rec, why = "gemma4:e4b", "Good balance of quality and speed for this machine."
-    else:
-        rec, why = "gemma4:e2b", "Smallest Gemma 4 model; best fit for limited memory."
+    from ..ai import profiles
+    prof = profiles.recommend(ram, vram)
+    rec = profiles.PROFILES[prof]["text"]
+    why = {"best": "Plenty of memory for the largest model.", "accurate": "Enough memory for the more accurate models.",
+           "balanced": "Good balance of quality and speed for this machine.",
+           "fast": "Smallest model; best fit for limited memory."}[prof]
     images_ok = vram >= 6
     router = get_router()
     _, current = router.spec("teacher")
     return {
         "os": f"{platform.system()} {platform.release()}", "cpu_cores": os.cpu_count(), "ram_gb": ram, "gpu": gpu,
         "free_disk_gb": free_disk,
-        "recommended_model": rec, "recommendation_reason": why, "current_model": current,
+        "recommended_model": rec, "recommended_profile": prof, "recommendation_reason": why, "current_model": current,
         "image_generation": {"practical": images_ok,
                              "note": "A GPU with 6 GB+ VRAM makes local Stable Diffusion practical." if not images_ok
                              else "Your GPU can run local Stable Diffusion for reference images."},

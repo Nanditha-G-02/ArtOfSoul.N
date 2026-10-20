@@ -3,29 +3,40 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import Avatar, { type Mood } from "../components/Avatar";
 import Demo from "../components/Demos";
+import { ColorMixer, Flashcards, OrderSteps, Quiz, SketchPad, ValueMatch, type Question } from "../components/Interactive";
 import { ErrorNote, List, Loading, Prose } from "../components/ui";
 import { api, mediaUrl } from "../lib/api";
 import { minutes, useFetch } from "../lib/hooks";
 import { useSession } from "../lib/session";
 import { useSpeaker } from "../lib/speech";
 import type { AiStatus, Lesson, Message, Reference } from "../lib/types";
+import { TUTOR } from "../lib/tutor";
 
 interface Step { title: string; say: string; do: string; demo: string; image_prompt: string }
 interface Script {
   intro: string; concept: { summary: string; why_it_works: string }; steps: Step[]; tips: string[]; common_mistakes: string[];
-  check: { question: string; options: string[]; answer_index: number; explanation: string } | null;
+  check: Question | null; quiz?: Question[]; terms?: { term: string; meaning: string }[];
   practice: { task: string; minutes: number; success_criteria: string[] }; next_hint: string;
 }
 interface Payload { lesson: Lesson; script: Script | null; model: string | null; visuals: Record<string, Reference> }
-type Seg = { kind: "intro" | "concept" | "step" | "check" | "practice"; say: string; step?: number };
+type SegKind = "intro" | "concept" | "terms" | "step" | "order" | "lab" | "quiz" | "practice";
+type Seg = { kind: SegKind; say: string; step?: number; label: string };
+const INTERACTIVE: SegKind[] = ["order", "lab", "quiz"];  // narrated playback pauses here for the learner
 
-function segments(s: Script): Seg[] {
+function quizOf(s: Script): Question[] { return s.quiz?.length ? s.quiz : s.check ? [s.check] : []; }
+
+function segments(s: Script, track: string | null): Seg[] {
+  const lab = track === "painting" ? "Let's mix some colour. Match each target using only a few pigments."
+    : "Let's train your eye for values. Match each small square to the scale — and watch out, the surroundings will try to trick you.";
   return [
-    { kind: "intro", say: s.intro },
-    { kind: "concept", say: `${s.concept.summary} ${s.concept.why_it_works}` },
-    ...s.steps.map((st, i) => ({ kind: "step" as const, say: `${st.say} ${st.do}`, step: i })),
-    ...(s.check ? [{ kind: "check" as const, say: s.check.question }] : []),
-    { kind: "practice", say: `Now it's your turn. ${s.practice.task}` },
+    { kind: "intro", say: s.intro, label: "Welcome" },
+    { kind: "concept", say: `${s.concept.summary} ${s.concept.why_it_works}`, label: "The idea" },
+    ...(s.terms?.length ? [{ kind: "terms" as const, say: "Here are a few key words. Tap each card to see what it means.", label: "Key words" }] : []),
+    ...s.steps.map((st, i) => ({ kind: "step" as const, say: `${st.say} ${st.do}`, step: i, label: `Step ${i + 1}` })),
+    ...(s.steps.length >= 3 ? [{ kind: "order" as const, say: "Quick challenge: put the steps we just did back in the right order.", label: "Order" }] : []),
+    { kind: "lab", say: lab, label: track === "painting" ? "Colour lab" : "Value lab" },
+    ...(quizOf(s).length ? [{ kind: "quiz" as const, say: `Time for a quick quiz. ${quizOf(s)[0].question}`, label: "Quiz" }] : []),
+    { kind: "practice", say: `Now it's your turn. ${s.practice.task}`, label: "Practice" },
   ];
 }
 
@@ -52,7 +63,9 @@ function Lessonroom({ id }: { id: string }) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [bubble, setBubble] = useState("");
-  const [answer, setAnswer] = useState<{ choice: number; correct: boolean; explanation: string; answer_index: number } | null>(null);
+  const [cleared, setCleared] = useState<Set<number>>(new Set());  // interactive parts the learner has finished
+  const [celebrate, setCelebrate] = useState(false);
+  const [sketchOpen, setSketchOpen] = useState(false);
   const [imgBusy, setImgBusy] = useState(false);
   const [imgErr, setImgErr] = useState<string | null>(null);
   const [ask, setAsk] = useState("");
@@ -64,7 +77,7 @@ function Lessonroom({ id }: { id: string }) {
     setPhase("preparing"); setError(null);
     try {
       const p = await api.post<Payload>(`/api/lessons/${id}/script${regenerate ? "?regenerate=true" : ""}`);
-      setData(p); setI(0); setAnswer(null); setPhase("ready");
+      setData(p); setI(0); setCleared(new Set()); setPhase("ready");
     } catch (e) { setError((e as Error).message); setPhase("error"); }
   }, [id]);
 
@@ -75,7 +88,7 @@ function Lessonroom({ id }: { id: string }) {
     return () => { playRef.current = false; };
   }, [id, prepare]);
 
-  const segs = data?.script ? segments(data.script) : [];
+  const segs = data?.script ? segments(data.script, profile?.track ?? null) : [];
   const seg = segs[i];
 
   const say = useCallback(async (text: string) => {
@@ -94,20 +107,22 @@ function Lessonroom({ id }: { id: string }) {
       setI(k);
       await say(segs[k].say);
       if (!playRef.current) break;
-      if (segs[k].kind === "check") break; // wait for the learner to answer
+      if (INTERACTIVE.includes(segs[k].kind) && !cleared.has(k)) break; // wait for the learner
       await new Promise((r) => setTimeout(r, 700));
     }
     playRef.current = false; setPlaying(false);
   }
 
-  function go(n: number) { playRef.current = false; setPlaying(false); voice.stop(); setI(Math.max(0, Math.min(segs.length - 1, n))); }
+  function go(n: number) { playRef.current = false; setPlaying(false); voice.stop(); setSketchOpen(false); setI(Math.max(0, Math.min(segs.length - 1, n))); }
 
-  async function choose(choice: number) {
-    try {
-      const r = await api.post<{ correct: boolean; explanation: string; answer_index: number }>(`/api/lessons/${id}/check`, { choice });
-      setAnswer({ choice, ...r });
-      say(`${r.correct ? "Yes, exactly!" : "Not quite."} ${r.explanation}`);
-    } catch (e) { setError((e as Error).message); }
+  function finish(kind: "order_steps" | "value_match" | "color_mix" | "flashcards", score?: number, total?: number) {
+    setCleared((c) => new Set(c).add(i));
+    if (score !== undefined && total) {
+      const good = score / total >= 0.8;
+      if (good) { setCelebrate(true); setTimeout(() => setCelebrate(false), 2500); }
+      say(good ? `Brilliant, ${score} out of ${total}!` : `${score} out of ${total}. Nice effort — you can play again any time.`);
+    }
+    api.post(`/api/lessons/${id}/activity`, { kind, score, total }).catch(() => {});
   }
 
   async function picture(step: number) {
@@ -133,7 +148,7 @@ function Lessonroom({ id }: { id: string }) {
   if (phase === "loading") return <Loading label="Opening the studio" />;
 
   const mood: Mood = phase === "preparing" || askBusy || imgBusy ? "thinking" : voice.speaking ? "talking"
-    : answer?.correct && seg?.kind === "check" ? "happy" : "idle";
+    : celebrate ? "happy" : "idle";
   const visual = seg?.kind === "step" && seg.step !== undefined ? data?.visuals[String(seg.step)] : undefined;
   const imagesOn = ai.data?.image?.configured;
 
@@ -156,7 +171,7 @@ function Lessonroom({ id }: { id: string }) {
         </div>
         {phase === "ready" && <div className="mt-4 flex gap-2">
           <label htmlFor="ask" className="sr-only">Ask your teacher</label>
-          <input id="ask" className="field" placeholder="Ask Muse about this lesson…" value={ask} onChange={(e) => setAsk(e.target.value)}
+          <input id="ask" className="field" placeholder={`Ask ${TUTOR.name} about this lesson…`} value={ask} onChange={(e) => setAsk(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") sendQuestion(); }} disabled={askBusy} />
           <button className="btn-primary px-4" onClick={sendQuestion} disabled={askBusy || !ask.trim()}>Ask</button>
         </div>}
@@ -175,8 +190,9 @@ function Lessonroom({ id }: { id: string }) {
         {phase === "ready" && data?.script && seg && <>
           {/* progress dots */}
           <div className="mt-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Lesson steps">
-            {segs.map((s, k) => <button key={k} role="tab" aria-selected={k === i} aria-label={`Part ${k + 1}: ${s.kind}`} onClick={() => go(k)}
-              className={`h-2.5 rounded-full transition-all ${k === i ? "w-10 bg-ink" : k < i ? "w-5 bg-lavender" : "w-5 bg-white"}`} />)}
+            {segs.map((s, k) => <button key={k} role="tab" aria-selected={k === i} onClick={() => go(k)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${k === i ? "bg-ink text-white" : k < i || cleared.has(k) ? "bg-meadow-soft text-meadow" : "bg-white/80 text-ink-soft"}`}>
+              {INTERACTIVE.includes(s.kind) && <span aria-hidden className="mr-1">●</span>}{s.label}</button>)}
           </div>
 
           <AnimatePresence mode="wait">
@@ -203,19 +219,25 @@ function Lessonroom({ id }: { id: string }) {
                     {!visual && imagesOn && <button className="btn-outline mt-4 text-sm" disabled={imgBusy} onClick={() => picture(seg.step!)}>{imgBusy ? "Generating…" : "Show me a picture"}</button>}
                     {!visual && imagesOn === false && <p className="mt-4 text-xs text-ink-faint">Showing an animated demonstration. Generated pictures are optional (see Progress → Setup).</p>}
                     {imgErr && <div className="mt-3"><ErrorNote message={imgErr} /></div>}
+                    <button className="btn-big mt-4 py-2.5 text-sm" onClick={() => setSketchOpen(!sketchOpen)} aria-expanded={sketchOpen}>
+                      {sketchOpen ? "Close sketch pad" : "Try it here on the sketch pad"}</button>
                   </div>
                 </div>
+                <AnimatePresence>{sketchOpen && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-4 overflow-hidden">
+                  <SketchPad lessonId={id} track={profile?.track ?? null} prompt={`${st.title}: ${st.do}`} /></motion.div>}</AnimatePresence>
               </>; })()}
 
-              {seg.kind === "check" && data.script.check && <>
-                <h2 className="text-2xl">Quick check</h2><p className="mt-2 text-lg">{data.script.check.question}</p>
-                <div className="mt-4 grid gap-3">{data.script.check.options.map((o, k) => {
-                  const state = !answer ? "" : k === answer.answer_index ? "ring-teal bg-sky" : k === answer.choice ? "ring-coral bg-rose" : "opacity-60";
-                  return <motion.button key={k} whileTap={{ scale: 0.98 }} disabled={!!answer} onClick={() => choose(k)}
-                    className={`rounded-2xl bg-white p-4 text-left text-[16px] ring-2 ring-transparent hover:ring-lavender ${state}`}>{o}</motion.button>;
-                })}</div>
-                {answer && <p className="mt-4 text-[15.5px]"><strong>{answer.correct ? "Well done! " : "Good try. "}</strong>{answer.explanation}</p>}
-              </>}
+              {seg.kind === "terms" && data.script.terms && <Flashcards terms={data.script.terms} onDone={() => finish("flashcards")} />}
+
+              {seg.kind === "order" && <OrderSteps steps={data.script.steps.map((st) => st.title)} onDone={(sc, t) => finish("order_steps", sc, t)} />}
+
+              {seg.kind === "lab" && (profile?.track === "painting"
+                ? <ColorMixer medium={profile?.medium ?? null} onDone={(sc, t) => finish("color_mix", sc, t)} />
+                : <ValueMatch onDone={(sc, t) => finish("value_match", sc, t)} />)}
+
+              {seg.kind === "quiz" && <Quiz lessonId={id} questions={quizOf(data.script)}
+                onAnswer={(ok, ex) => { say(`${ok ? "Yes, exactly!" : "Not quite."} ${ex}`); if (ok) { setCelebrate(true); setTimeout(() => setCelebrate(false), 1800); } }}
+                onDone={() => setCleared((c) => new Set(c).add(i))} />}
 
               {seg.kind === "practice" && <>
                 <h2 className="text-2xl">Your practice</h2>
@@ -232,7 +254,7 @@ function Lessonroom({ id }: { id: string }) {
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <button className="btn-ghost" disabled={i === 0} onClick={() => go(i - 1)}>Back</button>
             <button className="btn-primary" onClick={play}>{playing ? "Pause" : i === 0 ? "Play narrated lesson" : "Continue playing"}</button>
-            <button className="btn-outline" disabled={i === segs.length - 1 || (seg.kind === "check" && !answer)} onClick={() => go(i + 1)}>Next</button>
+            <button className="btn-outline" disabled={i === segs.length - 1} onClick={() => go(i + 1)}>{INTERACTIVE.includes(seg.kind) && !cleared.has(i) ? "Skip" : "Next"}</button>
             <span className="ml-auto text-xs text-ink-faint">Narrated, animated slides · written by {data?.model}
               <button className="ml-2 underline" onClick={() => prepare(true)}>Rewrite lesson</button></span>
           </div>

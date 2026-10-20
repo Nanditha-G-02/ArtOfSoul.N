@@ -84,8 +84,12 @@ class FakeProvider:
                               {"title": "Block", "say": "Block the shadow shape.", "do": "Block", "demo": "not-a-demo", "image_prompt": "egg"},
                               {"title": "", "say": "", "do": "", "demo": "x", "image_prompt": ""}],
                     "tips": ["t"], "common_mistakes": ["m"],
-                    "check": {"question": "What do eyes read first?", "options": ["Detail", "Big value masses", "Outlines"],
+                    "quiz": [{"question": "What do eyes read first?", "options": ["Detail", "Big value masses", "Outlines"],
                               "answer_index": 1, "explanation": "Masses first."},
+                             {"question": "Pressing hard early can cause shine.", "options": ["True", "False"], "answer_index": 0,
+                              "explanation": "It burnishes the paper."},
+                             {"question": "broken", "options": ["only one"], "answer_index": 0, "explanation": ""}],
+                    "terms": [{"term": "Value", "meaning": "How light or dark a tone is."}, {"term": "", "meaning": "x"}],
                     "practice": {"task": "Three-value egg study", "minutes": 30, "success_criteria": ["Three clear values"]},
                     "next_hint": "Next: edges."}, Usage()
         if schema_name == "palette":

@@ -54,15 +54,24 @@ def _clean(script, lesson: m.Lesson, db: Session) -> dict:
                       "image_prompt": str(st.get("image_prompt") or "")[:500]})
     if not steps:
         raise ValueError("no usable steps")
-    check = _d(script.get("check"))
-    opts = [str(o) for o in _l(check.get("options")) if str(o).strip()][:4]
-    ai = check.get("answer_index")
-    ai = _int(ai, -1) if not isinstance(ai, int) else ai
-    if len(opts) < 2 or not 0 <= ai < len(opts) or not str(check.get("question") or "").strip():
-        check = None  # an unusable check is dropped rather than shown with a wrong answer key
-    else:
-        check = {"question": str(check["question"]), "options": opts, "answer_index": ai,
-                 "explanation": str(check.get("explanation") or "")}
+    quiz = []
+    raw_quiz = _l(script.get("quiz")) or _l(script.get("check"))  # older cached lessons had a single "check"
+    if isinstance(script.get("check"), dict) and not _l(script.get("quiz")):
+        raw_quiz = [script["check"]]
+    for q in raw_quiz[:4]:
+        q = _d(q)
+        opts = [str(o) for o in _l(q.get("options")) if str(o).strip()][:4]
+        ai = q.get("answer_index")
+        ai = _int(ai, -1) if not isinstance(ai, int) else ai
+        if len(opts) < 2 or not 0 <= ai < len(opts) or not str(q.get("question") or "").strip():
+            continue  # an unusable question is dropped rather than shown with a wrong answer key
+        quiz.append({"question": str(q["question"]), "options": opts, "answer_index": ai,
+                     "explanation": str(q.get("explanation") or "")})
+    terms = []
+    for t in _l(script.get("terms"))[:5]:
+        t = _d(t)
+        if str(t.get("term") or "").strip() and str(t.get("meaning") or "").strip():
+            terms.append({"term": str(t["term"])[:60], "meaning": str(t["meaning"])[:300]})
     pr = _d(script.get("practice"))
     concept = script.get("concept")
     concept = _d(concept) if isinstance(concept, dict) else {"summary": str(concept or ""), "why_it_works": ""}
@@ -70,7 +79,8 @@ def _clean(script, lesson: m.Lesson, db: Session) -> dict:
     return {"intro": str(script.get("intro") or f"Let's begin: {lesson.title}.")[:600],
             "concept": {"summary": str(concept.get("summary") or ""), "why_it_works": str(concept.get("why_it_works") or "")},
             "steps": steps, "tips": [str(t) for t in _l(script.get("tips"))][:5],
-            "common_mistakes": [str(t) for t in _l(script.get("common_mistakes"))][:5], "check": check,
+            "common_mistakes": [str(t) for t in _l(script.get("common_mistakes"))][:5],
+            "quiz": quiz, "check": quiz[0] if quiz else None, "terms": terms,
             "practice": {"task": str(pr.get("task") or lesson.studio_assignment or "Practise the steps above."),
                          "minutes": max(5, min(_int(pr.get("minutes"), 30), 240)), "success_criteria": criteria[:5]},
             "next_hint": str(script.get("next_hint") or "")}
@@ -79,6 +89,15 @@ def _clean(script, lesson: m.Lesson, db: Session) -> dict:
 _locks: dict[int, threading.Lock] = {}
 _locks_guard = threading.Lock()
 log_ = logging.getLogger("artofsoul.lessons")
+
+
+def _skill_context(db: Session, lesson: m.Lesson) -> list[dict]:
+    """The curriculum's own description and 'solid' rubric level for each skill — grounding for the lesson."""
+    out = []
+    for sk in db.scalars(select(m.Skill).where(m.Skill.slug.in_(lesson.skill_slugs))):
+        rub = db.scalar(select(m.AssessmentRubric).where(m.AssessmentRubric.skill_id == sk.id))
+        out.append({"name": sk.name, "what_it_is": sk.description, "what_good_looks_like": rub.solid if rub else ""})
+    return out
 
 
 def _lock(lesson_id: int) -> threading.Lock:
@@ -115,6 +134,8 @@ def _write(db: Session, user: m.User, lesson: m.Lesson, cached, mark_current: bo
         "LEARNER": {"name": user.display_name, "level": profile.level, "track": profile.track, "medium": profile.medium,
                     "goal": profile.goals, "daily_minutes": profile.daily_minutes,
                     "techniques_to_improve": profile.difficulties},
+        "MEDIUM_FACTS": prompts.MEDIUM_FACTS.get(profile.medium or "graphite", []),
+        "SKILLS": _skill_context(db, lesson),
         "LESSON": {"title": lesson.title, "stage": lesson.stage_title, "objectives": lesson.objectives,
                    "studio_assignment": lesson.studio_assignment,
                    "assessment_criteria": lesson.assessment_criteria, "est_minutes": lesson.est_minutes,
@@ -122,7 +143,7 @@ def _write(db: Session, user: m.User, lesson: m.Lesson, cached, mark_current: bo
     }
     router = get_router()
     raw = router.json("teacher", prompts.LESSON, [{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-                      "lesson_script", prompts.LESSON_SCHEMA, user_id=user.id, max_tokens=2500)
+                      "lesson_script", prompts.LESSON_SCHEMA, user_id=user.id, max_tokens=3000)
     try:
         script = _clean(raw, lesson, db)
     except (ValueError, TypeError, AttributeError) as e:
@@ -186,17 +207,33 @@ def practice_error():
     return AIProviderError("The local model's lesson script was incomplete. Press “Try again” — or use a larger model.")
 
 
-def check_answer(db: Session, user: m.User, lesson: m.Lesson, choice: int) -> dict:
+def check_answer(db: Session, user: m.User, lesson: m.Lesson, choice: int, question: int = 0) -> dict:
     content = db.scalar(select(m.LessonContent).where(m.LessonContent.lesson_id == lesson.id))
-    if not content or not content.script.get("check"):
-        raise ValueError("This lesson has no understanding check.")
-    chk = content.script["check"]
-    correct = choice == chk["answer_index"]
-    if content.quiz_correct is None:
-        content.quiz_correct = correct
-    log(db, user.id, "check", f"Understanding check in “{lesson.title}”: {'correct' if correct else 'not yet'}", "lesson", lesson.id)
+    quiz = (content.script.get("quiz") or ([content.script["check"]] if content.script.get("check") else [])) if content else []
+    if not 0 <= question < len(quiz):
+        raise ValueError("This lesson has no such question.")
+    q = quiz[question]
+    correct = choice == q["answer_index"]
+    first = not db.scalar(select(m.QuizAnswer.id).where(m.QuizAnswer.lesson_id == lesson.id, m.QuizAnswer.question_index == question))
+    if first:
+        db.add(m.QuizAnswer(lesson_id=lesson.id, question_index=question, correct=correct))
+        if question == 0 and content.quiz_correct is None:
+            content.quiz_correct = correct
+        log(db, user.id, "check", f"Quiz in “{lesson.title}”, question {question + 1}: {'correct' if correct else 'not yet'}",
+            "lesson", lesson.id)
     db.commit()
-    return {"correct": correct, "answer_index": chk["answer_index"], "explanation": chk["explanation"]}
+    return {"correct": correct, "answer_index": q["answer_index"], "explanation": q["explanation"], "first_attempt": first}
+
+
+ACTIVITY_LABEL = {"value_match": "Value-matching game", "color_mix": "Colour-mixing challenge",
+                  "order_steps": "Put-the-steps-in-order", "flashcards": "Key-word flashcards", "sketch": "Sketch pad"}
+
+
+def record_activity(db: Session, user: m.User, lesson: m.Lesson, kind: str, score: int | None, total: int | None) -> None:
+    label = ACTIVITY_LABEL.get(kind, kind)
+    result = f" — {score}/{total}" if score is not None and total else ""
+    log(db, user.id, "activity", f"{label} in “{lesson.title}”{result}", "lesson", lesson.id)
+    db.commit()
 
 
 def step_visual(db: Session, user: m.User, lesson: m.Lesson, index: int) -> m.GeneratedReference:

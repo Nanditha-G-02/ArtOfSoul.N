@@ -134,6 +134,18 @@ class OllamaProvider:
     def image(self, model, prompt, size):
         raise AINotConfigured("Ollama doesn't generate images here. Set MODEL_IMAGE=sdwebui:default to use a local Stable Diffusion WebUI.")
 
+    def pull(self, model: str):
+        """Yield Ollama's download progress events for `model`."""
+        try:
+            with self.client.stream("POST", "/api/pull", json={"model": model, "stream": True}, timeout=None) as r:
+                for line in r.iter_lines():
+                    if line.strip():
+                        yield json.loads(line)
+        except httpx.ConnectError:
+            yield {"error": "Ollama isn't running. Start it, then try again."}
+        except (httpx.HTTPError, ValueError) as e:
+            yield {"error": f"Download interrupted: {e}"}
+
     def available_models(self) -> list[str] | None:
         try:
             r = self.client.get("/api/tags", timeout=1.5)

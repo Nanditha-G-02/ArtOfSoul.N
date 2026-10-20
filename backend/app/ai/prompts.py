@@ -1,4 +1,7 @@
 """System prompts and JSON schemas for each model role."""
+from ..config import get_settings
+
+NAME = get_settings().tutor_name
 
 HONESTY = """
 Honesty rules (non-negotiable):
@@ -9,7 +12,7 @@ Honesty rules (non-negotiable):
 - Techniques differ across media (oil, acrylic, watercolour, graphite). Do not transfer advice between media without saying how it changes.
 """.strip()
 
-TEACHER = f"""You are the ArtOfSoul.N studio mentor: a patient, highly experienced professional instructor in advanced
+TEACHER = f"""You are {NAME}, the ArtOfSoul.N studio mentor: a patient, highly experienced professional instructor in advanced
 pencil drawing and advanced painting. You teach artists who already know the basics.
 
 How you teach:
@@ -208,17 +211,25 @@ Only facts the learner stated; no speculation. If nothing new, return an empty s
 DEMOS = ["value_scale", "sphere_shading", "hatching", "edge_control", "perspective", "proportion",
          "color_temperature", "color_mixing", "glazing", "composition", "atmosphere", "brushwork"]
 
-LESSON = f"""You are the ArtOfSoul.N avatar teacher: warm, encouraging, precise. Write the teaching script for ONE lesson
-that an animated teacher will speak aloud, one step at a time, while a visual demonstration plays.
+LESSON = f"""You are {NAME}, the ArtOfSoul.N teacher: warm, encouraging, precise. Write the teaching script for ONE
+lesson that you will speak aloud, one step at a time, while a visual demonstration plays.
 - Pitch everything to LEARNER.level and the lesson's objectives. Track and medium matter: never give oil advice to a
   watercolour learner or paint advice to a pencil learner.
+- Ground every technical claim in MEDIUM_FACTS and SKILLS. If you are unsure of a fact, leave it out rather than guess.
 - Spoken lines ("intro", "say") are short, natural sentences, max ~45 words each, no markdown, no lists.
-- 3–4 steps. Each step: a short title, what the teacher says, one concrete action ("do"), the best matching
-  demonstration id from {DEMOS}, and an image_prompt describing a clean reference/illustration for that step
-  (no text in the image).
-- A single multiple-choice understanding check with 3–4 options.
+- terms: 3–4 key words for this lesson with a one-sentence plain meaning each.
+- 3–4 steps. Each step: a short title, what you say, one concrete action ("do"), the best matching demonstration id
+  from {DEMOS}, and an image_prompt describing a clean reference/illustration for that step (no text in the image).
+  Steps must be in the order a learner would actually do them.
+- quiz: 3 questions that check understanding (not trivia). Use 3–4 options each, or exactly the 2 options
+  ["True", "False"] for a true/false question. answer_index is the 0-based index of the correct option.
 - A small practice task the learner can finish in their daily time, with 2–4 success criteria they can see in a photo.
 {HONESTY}"""
+
+_QUESTION = {"type": "object", "properties": {
+    "question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
+    "answer_index": {"type": "integer"}, "explanation": {"type": "string"}},
+    "required": ["question", "options", "answer_index", "explanation"]}
 
 LESSON_SCHEMA = {
     "type": "object",
@@ -226,21 +237,49 @@ LESSON_SCHEMA = {
         "intro": {"type": "string"},
         "concept": {"type": "object", "properties": {"summary": {"type": "string"}, "why_it_works": {"type": "string"}},
                     "required": ["summary", "why_it_works"]},
+        "terms": {"type": "array", "items": {"type": "object", "properties": {
+            "term": {"type": "string"}, "meaning": {"type": "string"}}, "required": ["term", "meaning"]}},
         "steps": {"type": "array", "items": {"type": "object", "properties": {
             "title": {"type": "string"}, "say": {"type": "string"}, "do": {"type": "string"},
             "demo": {"type": "string", "enum": DEMOS}, "image_prompt": {"type": "string"}},
             "required": ["title", "say", "do", "demo", "image_prompt"]}},
         "tips": {"type": "array", "items": {"type": "string"}},
         "common_mistakes": {"type": "array", "items": {"type": "string"}},
-        "check": {"type": "object", "properties": {
-            "question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
-            "answer_index": {"type": "integer"}, "explanation": {"type": "string"}},
-            "required": ["question", "options", "answer_index", "explanation"]},
+        "quiz": {"type": "array", "items": _QUESTION},
         "practice": {"type": "object", "properties": {
             "task": {"type": "string"}, "minutes": {"type": "integer"},
             "success_criteria": {"type": "array", "items": {"type": "string"}}},
             "required": ["task", "minutes", "success_criteria"]},
         "next_hint": {"type": "string"},
     },
-    "required": ["intro", "concept", "steps", "tips", "common_mistakes", "check", "practice", "next_hint"],
+    "required": ["intro", "concept", "terms", "steps", "tips", "common_mistakes", "quiz", "practice", "next_hint"],
+}
+
+# Curated, verified-by-practice basics injected into lesson prompts so small local models stay accurate per medium.
+MEDIUM_FACTS = {
+    "graphite": [
+        "H grades are harder and make lighter marks; B grades are softer and darker; HB sits between.",
+        "Build tone in layers, generally from lighter to darker; pressing hard early burnishes the paper and causes shine.",
+        "A kneaded eraser lifts graphite gently and can be shaped to pick out highlights.",
+        "Paper tooth holds graphite; blending tools smooth tone but can flatten texture.",
+    ],
+    "watercolor": [
+        "Watercolour is transparent: the white of the paper is the lightest value, so whites are planned and reserved.",
+        "Work generally from light to dark, because transparent layers cannot cover darker ones well.",
+        "Wet-in-wet gives soft, spreading edges; wet-on-dry gives crisp edges.",
+        "Let a layer dry fully before glazing over it; colours usually dry lighter than they look when wet.",
+        "Overworking lifts and muddies layers; fewer, confident washes stay luminous.",
+    ],
+    "acrylic": [
+        "Acrylic dries quickly and usually dries slightly darker than it looks wet.",
+        "A retarder or slow-drying medium and a stay-wet palette extend working time for blending.",
+        "Used thickly it is opaque, so light colours can be painted over dark; glazing medium allows thin transparent layers.",
+        "Brushes must be washed before paint dries in them.",
+    ],
+    "oil": [
+        "Oil dries slowly, which allows blending wet into wet over a long session.",
+        "Fat over lean: each layer should have the same or more oil than the one beneath, to avoid cracking.",
+        "Early layers are often thinned with solvent; a lean monochrome underpainting can establish values first.",
+        "Glazes are thin transparent layers applied over paint that is dry to the touch.",
+    ],
 }

@@ -35,7 +35,9 @@ class ModelRouter:
 
     # -- configuration
     def spec(self, role: str) -> tuple[str, str]:
-        raw = getattr(self.settings, f"model_{role}")
+        from . import profiles
+        raw = profiles.load().get("roles", {}).get(role) if not self._override else None
+        raw = raw or getattr(self.settings, f"model_{role}")
         provider, _, model = raw.partition(":")
         if provider.strip().lower() == "none":
             return "none", ""
