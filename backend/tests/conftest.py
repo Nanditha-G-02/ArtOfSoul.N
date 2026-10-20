@@ -15,6 +15,7 @@ os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", f"sqlite:///{_t
 os.environ["STORAGE_DIR"] = f"{_tmp}/storage"
 os.environ["JWT_SECRET"] = "test-secret-test-secret-1234567890ab"
 os.environ["RATE_LIMIT_AI_PER_MINUTE"] = "1000"
+os.environ["PREFETCH_NEXT_LESSON"] = "false"  # background prefetch is tested explicitly in test_journey
 os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ.pop("OPENAI_API_KEY", None)
 

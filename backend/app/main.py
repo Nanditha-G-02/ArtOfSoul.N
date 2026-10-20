@@ -28,11 +28,29 @@ def run_migrations() -> None:
     command.upgrade(cfg, "head")
 
 
+def _warm_up_model() -> None:
+    """Load the local model into memory in the background so the first lesson doesn't also pay the load time."""
+    import threading
+
+    from .ai.router import get_router
+
+    def run():
+        try:
+            router = get_router()
+            provider, model = router.spec("teacher")
+            if provider == "ollama":
+                router.provider("ollama").warm_up(model)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    threading.Thread(target=run, name="model-warm-up", daemon=True).start()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     run_migrations()
     with SessionLocal() as db:
         seed_curriculum(db)
+    _warm_up_model()
     if "change-me" in settings.jwt_secret and settings.environment != "development":
         log.warning("JWT_SECRET is the default value — set a strong secret in production.")
     yield
@@ -46,6 +64,14 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allo
 @app.exception_handler(AIError)
 async def ai_error(_: Request, exc: AIError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message, "kind": type(exc).__name__})
+
+
+@app.exception_handler(Exception)
+async def unexpected_error(request: Request, exc: Exception):
+    log.exception("Unexpected error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={
+        "detail": "Something went wrong on the ArtOfSoul.N server. Please try again — if it keeps happening, the "
+                  "terminal running the backend shows the details.", "kind": "ServerError"})
 
 
 app.include_router(journey.router)

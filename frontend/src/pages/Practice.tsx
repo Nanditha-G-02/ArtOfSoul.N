@@ -61,7 +61,7 @@ export default function Practice() {
         <h1 className="text-[2.2rem]">Practice & feedback</h1>
         {lesson.data && <p className="mt-1 text-ink-soft">For “{lesson.data.lesson.title}”{lesson.data.script ? `: ${lesson.data.script.practice.task}` : ""}</p>}
 
-        <label className={`mt-6 flex min-h-72 cursor-pointer flex-col items-center justify-center rounded-[1.75rem] border-2 border-dashed p-4 text-center transition ${preview ? "border-purple bg-white" : "border-line bg-white/60 hover:border-purple"}`}>
+        <label className={`mt-6 flex min-h-72 cursor-pointer flex-col items-center justify-center rounded-[1.75rem] border-2 border-dashed p-4 text-center transition ${preview ? "border-ink bg-white" : "border-line bg-white/60 hover:border-ink"}`}>
           <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setArt(null); }} />
           {preview ? <img src={preview} alt="Your artwork" className="max-h-96 rounded-2xl object-contain" />
             : <><span className="font-display text-2xl">Add a photo of your work</span>
@@ -90,11 +90,11 @@ export default function Practice() {
 
         {result?.image_suitable && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-4">
           {!!result.limitations.length && <p className="rounded-2xl bg-amber-soft px-4 py-2 text-sm">Photo limits I noticed: {result.limitations.join(" ")}</p>}
-          <div className="rounded-3xl bg-lavender/70 p-5"><h2 className="text-xl text-violet-deep">What you did well</h2>
+          <div className="rounded-3xl bg-meadow-soft/80 p-5"><h2 className="text-xl text-meadow">What you did well</h2>
             {result.strengths.length ? <List items={result.strengths.map((s) => s.point)} /> : <p className="text-sm text-ink-soft">Nothing specific could be confirmed from the photo.</p>}</div>
           <div className="rounded-3xl bg-rose/80 p-5"><h2 className="text-xl text-[#8f3a33]">What to improve</h2>
             <ul className="mt-1 space-y-2">{result.improvements.map((s, k) => <li key={k}><strong>{s.issue}</strong><br /><span className="text-sm text-ink-soft">Why: {s.reason}</span></li>)}</ul></div>
-          {!!result.corrective_steps.length && <div className="rounded-3xl bg-white/85 p-5"><h2 className="text-xl">Next time, try</h2><List ordered items={result.corrective_steps} /></div>}
+          {!!result.corrective_steps.length && <div className="glass p-5"><h2 className="text-xl">Next time, try</h2><List ordered items={result.corrective_steps} /></div>}
           {!!result.exercises.length && <div className="rounded-3xl bg-sky/80 p-5"><h2 className="text-xl">Recommended next exercise</h2>
             <p className="mt-1"><strong>{result.exercises[0].title}</strong> — {result.exercises[0].brief}</p></div>}
           {!!result.skill_ratings.length && <p className="text-sm text-ink-soft">Recorded for your roadmap: {result.skill_ratings.map((r) => `${titleCase(r.skill_slug)} (${r.rating.replace("_", " ")})`).join(", ")}</p>}

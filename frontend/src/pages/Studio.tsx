@@ -146,7 +146,7 @@ function Lessonroom({ id }: { id: string }) {
         </div>
         <AnimatePresence mode="wait">
           {(bubble || phase === "preparing") && <motion.div key={bubble.slice(0, 40) || "prep"} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="relative mt-2 max-h-72 overflow-y-auto rounded-3xl bg-white p-4 text-[15.5px] shadow-md" aria-live="polite">
+            className="relative mt-8 max-h-72 overflow-y-auto rounded-3xl bg-white/90 p-4 text-[15.5px] shadow-md" aria-live="polite">
             {phase === "preparing" ? "I'm preparing this lesson for you — on a laptop this can take a minute or two." : <Prose text={bubble} />}
           </motion.div>}
         </AnimatePresence>
@@ -165,25 +165,25 @@ function Lessonroom({ id }: { id: string }) {
       {/* lesson column */}
       <section>
         {data && <>
-          <p className="text-sm font-bold text-purple">{data.lesson.stage_title} · {minutes(data.lesson.est_minutes)}</p>
+          <p className="text-sm font-bold text-meadow">{data.lesson.stage_title} · {minutes(data.lesson.est_minutes)}</p>
           <h1 className="text-[2.1rem] leading-tight">{data.lesson.title}</h1>
         </>}
 
-        {phase === "preparing" && <div className="mt-8 grid h-72 place-items-center rounded-3xl bg-white/70"><Loading label="Writing your lesson" /></div>}
+        {phase === "preparing" && <div className="mt-8 grid h-72 place-items-center glass"><Loading label="Writing your lesson" /></div>}
         {phase === "error" && <div className="mt-6 space-y-3"><ErrorNote message={error} /><button className="btn-primary" onClick={() => prepare()}>Try again</button></div>}
 
         {phase === "ready" && data?.script && seg && <>
           {/* progress dots */}
           <div className="mt-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Lesson steps">
             {segs.map((s, k) => <button key={k} role="tab" aria-selected={k === i} aria-label={`Part ${k + 1}: ${s.kind}`} onClick={() => go(k)}
-              className={`h-2.5 rounded-full transition-all ${k === i ? "w-10 bg-purple" : k < i ? "w-5 bg-lavender" : "w-5 bg-white"}`} />)}
+              className={`h-2.5 rounded-full transition-all ${k === i ? "w-10 bg-ink" : k < i ? "w-5 bg-lavender" : "w-5 bg-white"}`} />)}
           </div>
 
           <AnimatePresence mode="wait">
             <motion.div key={i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}
-              className="mt-5 rounded-[1.75rem] bg-white/85 p-5 shadow-sm sm:p-7">
+              className="mt-5 glass p-5 shadow-sm sm:p-7">
               {seg.kind === "intro" && <><h2 className="text-2xl">Welcome to this lesson</h2><p className="mt-2 text-lg">{data.script.intro}</p>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">{data.lesson.objectives.slice(0, 4).map((o, k) => <div key={k} className="rounded-2xl bg-lavender/60 p-3 text-[15px]">{o}</div>)}</div></>}
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">{data.lesson.objectives.slice(0, 4).map((o, k) => <div key={k} className="rounded-2xl bg-meadow-soft/80 p-3 text-[15px]">{o}</div>)}</div></>}
 
               {seg.kind === "concept" && <><h2 className="text-2xl">The idea</h2><p className="mt-2 text-lg">{data.script.concept.summary}</p>
                 <p className="mt-3 rounded-2xl bg-sky/60 p-4 text-[15.5px]"><strong>Why it works: </strong>{data.script.concept.why_it_works}</p></>}

@@ -55,7 +55,7 @@ consolidate then extend; advanced: advanced depth only). Use:
 - RETRIEVED_SOURCES (institutional course records; cite by id only where a lesson genuinely reflects that course's
   published focus — e.g. a portfolio stage may cite a portfolio-focused course).
 Requirements:
-- 3–5 stages, 8–14 lessons total, ordered so prerequisites come first. Lesson titles short and friendly (max 7 words).
+- 3–4 stages, 6–10 lessons total, ordered so prerequisites come first. Lesson titles short and friendly (max 7 words).
 - Fit each lesson's est_minutes to LEARNER_PROFILE.daily_minutes where possible.
 - practice_plan: 3–5 short daily/weekly routine suggestions sized to the learner's daily time.
 - Each lesson: specific objectives, 1–3 skill slugs, a studio assignment, 1–3 exercises, explicit assessment criteria
@@ -213,7 +213,7 @@ that an animated teacher will speak aloud, one step at a time, while a visual de
 - Pitch everything to LEARNER.level and the lesson's objectives. Track and medium matter: never give oil advice to a
   watercolour learner or paint advice to a pencil learner.
 - Spoken lines ("intro", "say") are short, natural sentences, max ~45 words each, no markdown, no lists.
-- 3–6 steps. Each step: a short title, what the teacher says, one concrete action ("do"), the best matching
+- 3–4 steps. Each step: a short title, what the teacher says, one concrete action ("do"), the best matching
   demonstration id from {DEMOS}, and an image_prompt describing a clean reference/illustration for that step
   (no text in the image).
 - A single multiple-choice understanding check with 3–4 options.

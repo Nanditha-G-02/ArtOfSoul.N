@@ -89,16 +89,16 @@ def generate(db: Session, user: m.User, goal: str) -> m.Syllabus:
                             "level": profile.level, "daily_minutes": profile.daily_minutes,
                             "teaching_style": profile.teaching_style},
         "SKILL_STATUS": {s: st for s, st in statuses.items() if s in ordered},
-        "CANDIDATE_SKILLS": [{"slug": s, "name": skills[s].name, "tier": skills[s].tier, "description": skills[s].description,
+        "CANDIDATE_SKILLS": [{"slug": s, "name": skills[s].name, "tier": skills[s].tier,
                               "prerequisites": [p for p in graph.nodes[s].prereqs if p in ordered]} for s in ordered],
         "RETRIEVED_SOURCES": [{"id": src["id"], "institution": src["institution"], "course": src["title"],
-                               "verification": src["verification"], "summary": src["text"]} for src in sources],
+                               "verification": src["verification"], "summary": src["text"][:280]} for src in sources[:4]],
         "PREVIOUS_SYLLABUS": ({"goal": previous.goal, "lessons": [{"title": l.title, "status": l.status} for l in previous.lessons]}
                               if previous else None),
     }
     data = get_router().json("curriculum", prompts.CURRICULUM,
                              [{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-                             "personalised_syllabus", prompts.SYLLABUS_SCHEMA, user_id=user.id, max_tokens=12000)
+                             "personalised_syllabus", prompts.SYLLABUS_SCHEMA, user_id=user.id, max_tokens=6000)
 
     allowed_sources = {s["id"] for s in sources}
     allowed_skills = set(ordered)

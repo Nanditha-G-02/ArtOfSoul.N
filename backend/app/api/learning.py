@@ -66,6 +66,10 @@ def create_syllabus(body: SyllabusIn, user: m.User = Depends(ai_rate_limit), db:
         syl = syllabus_svc.generate(db, user, body.goal.strip())
     except syllabus_svc.SyllabusError as e:
         raise HTTPException(422, str(e))
+    first = next((l for l in sorted(syl.lessons, key=lambda x: x.position) if l.status == "current"), None)
+    if first:
+        from ..services.lessons import prefetch_lesson
+        prefetch_lesson(user.id, first.id)  # lesson 1 is usually ready by the time the learner opens it
     return _syl_out(db, syl)
 
 
@@ -106,6 +110,10 @@ def set_lesson_status(lesson_id: int, body: LessonStatusIn, user: m.User = Depen
         nxt = next((l for l in sorted(syl.lessons, key=lambda x: x.position) if l.status == "upcoming"), None)
         if nxt and not any(l.status == "current" for l in syl.lessons):
             nxt.status = "current"
+        if nxt:
+            from ..services.lessons import prefetch_lesson
+            db.commit()
+            prefetch_lesson(user.id, nxt.id)
     else:  # restore a skipped lesson
         lesson.status = "upcoming"
         log(db, user.id, "lesson", f"Restored lesson: {lesson.title}", "lesson", lesson.id)

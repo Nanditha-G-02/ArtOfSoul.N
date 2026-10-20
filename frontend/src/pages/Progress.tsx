@@ -22,12 +22,12 @@ interface Hw {
 function Ring({ value, total, color, label }: { value: number; total: number; color: string; label: string }) {
   const pct = total ? value / total : 0;
   return (
-    <div className="flex flex-col items-center rounded-3xl bg-white/80 p-5">
+    <div className="flex flex-col items-center glass p-5">
       <svg viewBox="0 0 100 100" className="h-24 w-24" aria-hidden>
         <circle cx="50" cy="50" r="40" fill="none" stroke="#f3ece2" strokeWidth="10" />
         <motion.circle cx="50" cy="50" r="40" fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" transform="rotate(-90 50 50)"
-          initial={{ pathLength: 0 }} animate={{ pathLength: pct }} transition={{ duration: 1 }} />
-        <text x="50" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="#231f47">{value}/{total}</text>
+          initial={{ pathLength: 0 }} animate={{ pathLength: pct, opacity: pct ? 1 : 0 }} transition={{ duration: 1 }} />
+        <text x="50" y="56" textAnchor="middle" fontSize="20" fontWeight="700" fill="#16161d">{value}/{total}</text>
       </svg>
       <p className="mt-2 text-sm font-bold text-ink-soft">{label}</p>
     </div>
@@ -50,9 +50,9 @@ export default function Progress() {
         : !data.syllabus ? <Link to="/start" className="btn-big mt-4">Start My Art Journey</Link> : null}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <Ring value={data.syllabus?.completed ?? 0} total={data.syllabus?.total ?? 0} color="#7c4dcc" label="Lessons finished" />
-        <Ring value={data.checks.correct} total={data.checks.answered} color="#23807f" label="Quick checks correct" />
-        <Ring value={data.recent_feedback.filter((f) => f.suitable).length} total={data.recent_feedback.length} color="#d9675e" label="Practice pieces reviewed" />
+        <Ring value={data.syllabus?.completed ?? 0} total={data.syllabus?.total ?? 0} color="#4f7032" label="Lessons finished" />
+        <Ring value={data.checks.correct} total={data.checks.answered} color="#3f6f8f" label="Quick checks correct" />
+        <Ring value={data.recent_feedback.filter((f) => f.suitable).length} total={data.recent_feedback.length} color="#ef6a3f" label="Practice pieces reviewed" />
       </div>
 
       {!!prof.length && <section className="mt-10"><h2 className="text-xl">Skills from your practice</h2>
@@ -66,7 +66,7 @@ export default function Progress() {
       {!!data.completed_lessons.length && <section className="mt-10"><h2 className="text-xl">Finished lessons</h2>
         <ul className="mt-2 space-y-1">{data.completed_lessons.map((l) => <li key={l.id} className="text-[15px]">✓ {l.title} <span className="text-xs text-ink-faint">{l.completed_at ? date(l.completed_at) : ""}</span></li>)}</ul></section>}
 
-      <section className="mt-12 rounded-[1.75rem] bg-white/80 p-6" id="setup">
+      <section className="mt-12 glass p-6" id="setup">
         <h2 className="text-xl">Setup on this computer</h2>
         {!hw.data ? <Loading label="Checking this computer" /> : <div className="mt-3 grid gap-6 md:grid-cols-2 text-[15px]">
           <div>

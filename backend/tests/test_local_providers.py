@@ -73,3 +73,27 @@ def test_sdwebui_decodes_image_and_reports_missing_api():
 def test_image_off_by_default_is_explained():
     with pytest.raises(AINotConfigured, match="optional"):
         NoImageProvider().image("", "x", "1024x1024")
+
+
+def test_ollama_disables_thinking_and_retries_when_unsupported():
+    bodies = []
+
+    def h(req):
+        b = json.loads(req.content)
+        bodies.append(b)
+        if "think" in b:
+            return httpx.Response(400, json={"error": "\"m\" does not support thinking"})
+        return httpx.Response(200, json={"message": {"content": "ok"}})
+
+    p = ollama(h)
+    assert p.text("m", "s", [{"role": "user", "content": "x"}], 10)[0] == "ok"
+    assert bodies[0]["think"] is False and "think" not in bodies[1]
+    p.text("m", "s", [{"role": "user", "content": "x"}], 10)
+    assert "think" not in bodies[2]  # remembered
+
+
+def test_ollama_dropped_connection_is_explained():
+    def drop(req):
+        raise httpx.RemoteProtocolError("peer closed connection")
+    with pytest.raises(AIProviderError, match="memory"):
+        ollama(drop).text("m", "s", [{"role": "user", "content": "x"}], 10)

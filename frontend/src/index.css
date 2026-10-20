@@ -1,17 +1,20 @@
 @import "tailwindcss";
-@import "@fontsource-variable/newsreader/opsz.css";
-@import "@fontsource-variable/nunito/index.css";
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
 
 @theme {
-  --font-display: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
-  --font-sans: "Nunito Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-paper: #fdf8f2;
+  --color-paper: #faf6f1;
   --color-paper-deep: #f3ece2;
   --color-peach: #f6dccb;
-  --color-ink: #231f47;
-  --color-ink-soft: #57537a;
-  --color-ink-faint: #8c88a8;
+  --color-ink: #16161d;
+  --color-meadow: #4f7032;
+  --color-meadow-soft: #e3ead3;
+  --color-bloom: #ef6a3f;
+  --color-dusk: #dfe4ef;
+  --color-ink-soft: #4d4b5c;
+  --color-ink-faint: #8b8898;
   --color-line: #e6dfd4;
 
   --color-violet: #5b3fa0;
@@ -35,19 +38,22 @@
 @layer base {
   html { -webkit-font-smoothing: antialiased; }
   body { @apply bg-paper text-ink font-sans; font-size: 16px; line-height: 1.6; }
-  h1, h2, h3 { @apply font-display text-ink; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; }
-  :focus-visible { outline: 2.5px solid var(--color-violet); outline-offset: 2px; border-radius: 6px; }
+  h1, h2, h3 { @apply font-display text-ink; font-weight: 650; letter-spacing: -0.03em; line-height: 1.1; }
+  h3 { font-weight: 650; letter-spacing: -0.015em; }
+  :focus-visible { outline: 2.5px solid var(--color-ink); outline-offset: 2px; border-radius: 6px; }
   ::selection { background: var(--color-lavender); }
 }
 
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15.5px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed; }
 @utility btn-primary { @apply btn bg-ink text-paper hover:bg-violet-deep; }
 @utility btn-pencil { @apply btn bg-violet text-white hover:bg-violet-deep; }
 @utility btn-paint { @apply btn bg-coral text-white hover:bg-[#c2554d]; }
 @utility btn-ghost { @apply btn text-ink hover:bg-paper-deep; }
-@utility btn-outline { @apply btn border border-line bg-white/70 text-ink hover:border-ink-faint; }
-@utility panel { @apply rounded-[var(--radius-panel)] bg-white/80 border border-line; }
-@utility field { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-faint focus:border-violet focus:outline-none; }
+@utility btn-outline { @apply btn border border-white/80 bg-white/60 text-ink backdrop-blur hover:bg-white; }
+@utility btn-light { @apply btn bg-white px-7 py-3.5 text-ink shadow-[0_10px_30px_-10px_rgba(22,22,29,.35)] hover:-translate-y-0.5; }
+@utility glass { @apply rounded-[28px] border border-white/70 bg-white/65 backdrop-blur-xl shadow-[0_10px_40px_-16px_rgba(22,22,29,.22)]; }
+@utility panel { @apply glass; }
+@utility field { @apply w-full rounded-2xl border border-white/80 bg-white/85 px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none; }
 @utility label { @apply mb-1.5 block text-sm font-medium text-ink-soft; }
 @utility chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium; }
 
@@ -58,5 +64,11 @@
 @keyframes settle { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .hero-settle { animation: settle 0.9s cubic-bezier(.2,.7,.2,1) both; }
 
-@utility btn-big { @apply btn px-8 py-4 text-lg bg-gradient-to-r from-purple to-coral text-white shadow-[0_12px_30px_-10px_rgba(124,77,204,.6)] hover:brightness-105; }
+@utility btn-big { @apply btn px-7 py-3.5 text-base bg-ink text-white shadow-[0_12px_30px_-12px_rgba(22,22,29,.55)] hover:-translate-y-0.5; }
 .blob { position: absolute; border-radius: 9999px; filter: blur(40px); opacity: .55; pointer-events: none; }
+
+/* gentle meadow sway on the home landscape */
+@keyframes ls-sway { 0%,100% { transform: skewX(0deg); } 50% { transform: skewX(1.2deg); } }
+.ls-sway { transform-origin: 50% 100%; transform-box: fill-box; animation: ls-sway 6s ease-in-out infinite; }
+.ls-sway-2 { animation-duration: 7.5s; animation-delay: -2s; }
+@media (prefers-reduced-motion: reduce) { .ls-sway { animation: none; } }

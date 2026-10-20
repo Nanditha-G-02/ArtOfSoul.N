@@ -19,7 +19,7 @@ const STATUS: Record<SkillStatus, { label: string; cls: string }> = {
   not_assessed: { label: "Not assessed", cls: "bg-paper-deep text-ink-soft" },
   in_progress: { label: "In progress", cls: "bg-sky text-teal" },
   needs_practice: { label: "Needs practice", cls: "bg-rose text-[#a8443c]" },
-  proficient: { label: "Proficient", cls: "bg-lavender text-violet-deep" },
+  proficient: { label: "Proficient", cls: "bg-lavender text-meadow" },
 };
 
 export function StatusChip({ status }: { status: SkillStatus }) {
@@ -43,8 +43,8 @@ export function Loading({ label = "Loading" }: { label?: string }) {
 
 export function Thinking({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-lavender/60 px-4 py-3 text-sm text-violet-deep" role="status">
-      <span className="h-2 w-2 animate-ping rounded-full bg-violet" /> {label}
+    <div className="flex items-center gap-3 rounded-2xl bg-meadow-soft/80 px-4 py-3 text-sm text-meadow" role="status">
+      <span className="h-2 w-2 animate-ping rounded-full bg-ink" /> {label}
     </div>
   );
 }

@@ -78,3 +78,52 @@ def test_image_generation_off_explains_itself(client):
     r = client.post("/api/references", headers=h, json={"purpose": "subject", "subject": "a pear"})
     assert r.status_code == 503 and "optional" in r.json()["detail"]
     assert get_router().status()["image"]["configured"] is False
+
+
+def test_prefetch_writes_next_lesson_once_and_handles_odd_model_output(client, fake):
+    import time
+
+    from app import models as m
+    from app.config import get_settings
+    from app.services.lessons import _clean
+    h = local(client)
+    client.post("/api/journey/answers", headers=h, json={"track": "pencil", "level": "advanced", "goal": "Hair and portraits",
+                                                         "daily_minutes": 60, "techniques": ["texture"]})
+    syl = client.post("/api/syllabus", headers=h, json={"goal": "Hair and portrait realism"}).json()
+    first, second = syl["lessons"][0]["id"], syl["lessons"][1]["id"]
+    get_settings().prefetch_next_lesson = True
+    try:
+        client.post(f"/api/lessons/{first}/script", headers=h)
+        for _ in range(100):  # background thread writes the following lesson
+            if client.get(f"/api/lessons/{second}/script", headers=h).json()["script"]:
+                break
+            time.sleep(0.05)
+        get_settings().prefetch_next_lesson = False  # don't start a third-lesson prefetch while counting calls
+        before = len(fake.calls)
+        got = client.post(f"/api/lessons/{second}/script", headers=h).json()
+        assert got["script"] and len(fake.calls) == before  # served from the prefetched copy, no new model call
+        assert got["lesson"]["status"] == "current"
+    finally:
+        get_settings().prefetch_next_lesson = False
+
+    # small local models sometimes return odd types: never a crash
+    with SessionLocal() as db:
+        lesson = db.get(m.Lesson, first)
+        out = _clean({"concept": "Values first", "check": [1, 2], "practice": {"minutes": "20 minutes"},
+                      "tips": "one tip", "steps": [{"say": "Squint.", "demo": "nope"}, "junk"]}, lesson, db)
+    assert out["check"] is None and out["practice"]["minutes"] == 20 and out["tips"] == ["one tip"]
+    assert out["concept"]["summary"] == "Values first" and len(out["steps"]) == 1
+
+
+def test_unexpected_errors_return_friendly_message(client, fake, monkeypatch):
+    from app.services import lessons
+    h = local(client)
+    client.post("/api/journey/answers", headers=h, json={"track": "pencil", "level": "beginner", "goal": "Shading basics",
+                                                         "daily_minutes": 30})
+    syl = client.post("/api/syllabus", headers=h, json={"goal": "Shading basics in pencil"}).json()
+    monkeypatch.setattr(lessons, "_write", lambda *a, **k: (_ for _ in ()).throw(KeyError("boom")))
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app, raise_server_exceptions=False) as c:
+        r = c.post(f"/api/lessons/{syl['lessons'][-1]['id']}/script", headers=h)
+    assert r.status_code == 500 and "try again" in r.json()["detail"]

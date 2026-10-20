@@ -1,8 +1,12 @@
 # ArtOfSoul.N — your personal AI art teacher
 
-A colourful, animated art-teaching app that runs **entirely on your own computer, for free**. You answer a few
-questions, the AI builds a personalised pencil-drawing or painting plan, and Muse — an animated, talking teacher —
-walks you through each lesson, checks your understanding, and gives feedback on photos of your practice.
+A calm, painterly art-teaching app that runs **entirely on your own computer, for free**. You answer a few
+questions, the AI builds a personalised pencil-drawing or painting plan, and Muse — your tutor, with a voice and a
+portrait that comes alive while she speaks — walks you through each lesson, checks your understanding, and gives
+feedback on photos of your practice.
+
+**Change the tutor:** replace `frontend/src/assets/tutor.jpg` (a square-ish portrait works best) and edit the name in
+`frontend/src/lib/tutor.ts`.
 
 **Home → Questions → Roadmap → Learning studio → Practice → Progress**
 
@@ -60,7 +64,8 @@ NVIDIA GPU on Linux: install the NVIDIA driver; Ollama uses the GPU automaticall
 | Teacher, plans, lessons, answers | **Gemma 4** via Ollama | free | Apache 2.0 licence. One model serves every role. |
 | Artwork feedback | **Gemma 4** (it reads images) | free | Two passes: describe what's visible → rate against explicit rubrics |
 | Voice | **Piper** with the `en_US-ljspeech-medium` voice | free | Piper is GPL-3.0; the LJSpeech dataset is public domain. Falls back to the Windows system voice. |
-| Avatar & demonstrations | Animated SVG in the browser (Framer Motion) | free | Mouth follows the real audio level with Piper; word timing with the system voice |
+| Tutor & demonstrations | Portrait + animated SVG demonstrations in the browser (motion) | free | While speaking, a halo and live sound-wave follow the voice level. A still photo isn't lip-synced (that looks uncanny) |
+| Landscape theme | Original painted SVG scene (no image files, no CDN) | free | Fonts are bundled, so the app works offline |
 | Pictures for lesson steps | Optional local **Stable Diffusion WebUI / Forge** | free | Off by default; needs a GPU. Without it, each step shows an animated demonstration |
 | Data | **SQLite** in `backend\data\` | free | Profile, plan, progress, artwork and cached lessons |
 
@@ -75,8 +80,17 @@ the six `MODEL_*` lines in `backend\.env`.
 | 16 GB RAM | `gemma4:e4b` (default) | ~10 GB |
 | NVIDIA GPU 10 GB+ or 32 GB RAM | `gemma4:12b` | ~8 GB |
 
-On a laptop without a GPU, expect a lesson to take a minute or more to prepare and a full plan several minutes.
-Lesson scripts are **cached**: each lesson is written once and replays instantly afterwards.
+What makes it faster:
+
+- **Thinking mode is off** (`OLLAMA_THINK=false`). Gemma 4 can "reason" before answering, which is several times
+  slower on a CPU and isn't needed for these short tasks.
+- **The model is loaded at start-up** and kept in memory for an hour, so the first lesson doesn't also pay load time.
+- **The next lesson is written in the background** while you study the current one (and lesson 1 right after your
+  plan is made), so clicking "Next lesson" is usually instant. Turn off with `PREFETCH_NEXT_LESSON=false`.
+- **Lessons are cached** — each is written once and replays instantly afterwards.
+- **Prompts are kept short** and plans are 6–10 lessons, because on a CPU reading a long prompt takes real time.
+
+On a laptop without a GPU the very first plan still takes a few minutes, and a photo review a few minutes.
 
 ### Optional: generated pictures
 

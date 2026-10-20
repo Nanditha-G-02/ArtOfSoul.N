@@ -35,10 +35,13 @@ class OllamaProvider:
     name = "ollama"
 
     def __init__(self, url: str, num_ctx: int, timeout: float, keep_alive: str = "30m",
-                 transport: httpx.BaseTransport | None = None):
+                 transport: httpx.BaseTransport | None = None, think: bool = False):
         self.url = url.rstrip("/")
         self.num_ctx = num_ctx
         self.keep_alive = keep_alive
+        # Reasoning ("thinking") multiplies generation time on CPU and isn't needed for these short teaching tasks.
+        self.think = think
+        self._think_supported = True
         self.client = httpx.Client(base_url=self.url, timeout=httpx.Timeout(timeout, connect=5.0), transport=transport)
 
     @staticmethod
@@ -63,25 +66,46 @@ class OllamaProvider:
                                   "temperature": 0.2 if fmt else 0.7}}
         if fmt:
             body["format"] = fmt
+        if self._think_supported:
+            body["think"] = self.think
         try:
             r = self.client.post("/api/chat", json=body)
+            if r.status_code == 400 and "think" in r.text.lower() and "think" in body:
+                self._think_supported = False  # model has no thinking switch: retry without it
+                body.pop("think")
+                r = self.client.post("/api/chat", json=body)
         except httpx.ConnectError as e:
             raise AINotConfigured(f"Ollama isn't running at {self.url}. Start Ollama (the app on Windows/macOS, or `ollama serve` on Linux), then run: ollama pull {model}") from e
         except httpx.TimeoutException as e:
             raise AIProviderError("The local model took too long. Try a smaller model (e.g. gemma4:e2b) or a shorter request.") from e
+        except httpx.HTTPError as e:  # connection dropped mid-answer (often Ollama running out of memory)
+            raise AIProviderError("Lost the connection to Ollama while it was answering. If this repeats, the model may "
+                                  "be too large for this computer's memory — try gemma4:e2b.") from e
         if r.status_code == 404:
             raise AINotConfigured(f"The model '{model}' isn't downloaded yet. Run: ollama pull {model}")
         if r.status_code >= 400:
             try:
-                detail = r.json().get("error", "")
+                detail = str(r.json().get("error", ""))
             except ValueError:
                 detail = r.text[:200]
             if "not found" in detail and "model" in detail:
                 raise AINotConfigured(f"The model '{model}' isn't downloaded yet. Run: ollama pull {model}")
+            if "memory" in detail.lower():
+                raise AIProviderError(f"Not enough memory for {model}. Close other apps or switch to gemma4:e2b. ({detail[:120]})")
             raise AIProviderError(f"Ollama error {r.status_code}: {detail[:200]}")
-        data = r.json()
-        text = (data.get("message") or {}).get("content", "").strip()
+        try:
+            data = r.json()
+        except ValueError as e:
+            raise AIProviderError("Ollama sent an unreadable response. Please try again.") from e
+        text = str((data.get("message") or {}).get("content") or "").strip()
         return text, Usage(data.get("prompt_eval_count", 0) or 0, data.get("eval_count", 0) or 0)
+
+    def warm_up(self, model: str) -> None:
+        """Load the model into memory ahead of the first request (a request with no messages only loads it)."""
+        try:
+            self.client.post("/api/chat", json={"model": model, "messages": [], "keep_alive": self.keep_alive}, timeout=600)
+        except httpx.HTTPError:
+            pass
 
     def text(self, model, system, messages, max_tokens):
         txt, usage = self._chat(model, self._convert(system, messages), max_tokens, None)
@@ -90,8 +114,10 @@ class OllamaProvider:
         return txt, usage
 
     def json(self, model, system, messages, schema_name, schema, max_tokens):
-        sys = (f"{system}\n\nRespond ONLY with a JSON object for `{schema_name}` that matches this JSON schema:\n"
-               f"{json.dumps(schema)}")
+        # Ollama enforces the schema itself through `format`, so the prompt only names the fields (keeps prompts short,
+        # which matters a lot on CPU where reading the prompt is a large share of the time).
+        keys = ", ".join(schema.get("properties", {}).keys())
+        sys = f"{system}\n\nRespond ONLY with one JSON object (`{schema_name}`) with the fields: {keys}."
         msgs = self._convert(sys, messages)
         total = Usage()
         for attempt in range(2):

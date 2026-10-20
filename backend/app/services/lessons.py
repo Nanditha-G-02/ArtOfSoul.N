@@ -1,5 +1,7 @@
 """Lesson teaching scripts (cached), understanding checks and per-step visuals."""
 import json
+import logging
+import threading
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,71 +19,166 @@ DOMAIN_DEMO = {"Value": "value_scale", "Light": "sphere_shading", "Edges": "edge
                "Subjects": "composition", "Artistic voice": "brushwork"}
 
 
-def _clean(script: dict, lesson: m.Lesson, db: Session) -> dict:
+def _d(v) -> dict:
+    return v if isinstance(v, dict) else {}
+
+
+def _l(v) -> list:
+    if isinstance(v, list):
+        return v
+    return [v] if isinstance(v, str) and v.strip() else []
+
+
+def _int(v, default: int) -> int:
+    try:
+        return int(str(v).split()[0])
+    except (ValueError, IndexError):
+        return default
+
+
+def _clean(script, lesson: m.Lesson, db: Session) -> dict:
+    """Normalise a model-written script. Small local models sometimes return the right shape with odd types;
+    anything unusable is dropped rather than shown wrongly."""
+    script = _d(script)
     domains = [d for (d,) in db.execute(select(m.Skill.domain).where(m.Skill.slug.in_(lesson.skill_slugs)))]
     fallback = DOMAIN_DEMO.get(domains[0] if domains else "", "value_scale")
     steps = []
-    for st in (script.get("steps") or [])[:6]:
-        if not isinstance(st, dict) or not st.get("say"):
+    for st in _l(script.get("steps"))[:6]:
+        st = _d(st)
+        say = str(st.get("say") or "").strip()
+        if not say:
             continue
         demo = st.get("demo") if st.get("demo") in prompts.DEMOS else fallback
-        steps.append({"title": str(st.get("title", ""))[:120], "say": str(st["say"])[:600], "do": str(st.get("do", ""))[:400],
-                      "demo": demo, "image_prompt": str(st.get("image_prompt", ""))[:500]})
+        steps.append({"title": str(st.get("title") or f"Step {len(steps) + 1}")[:120], "say": say[:600],
+                      "do": str(st.get("do") or "")[:400], "demo": demo,
+                      "image_prompt": str(st.get("image_prompt") or "")[:500]})
     if not steps:
         raise ValueError("no usable steps")
-    check = script.get("check") or {}
-    opts = [str(o) for o in (check.get("options") or [])][:4]
+    check = _d(script.get("check"))
+    opts = [str(o) for o in _l(check.get("options")) if str(o).strip()][:4]
     ai = check.get("answer_index")
-    if len(opts) < 2 or not isinstance(ai, int) or not 0 <= ai < len(opts):
-        check = None  # unusable check is dropped rather than shown with a wrong answer key
+    ai = _int(ai, -1) if not isinstance(ai, int) else ai
+    if len(opts) < 2 or not 0 <= ai < len(opts) or not str(check.get("question") or "").strip():
+        check = None  # an unusable check is dropped rather than shown with a wrong answer key
     else:
-        check = {"question": str(check.get("question", "")), "options": opts, "answer_index": ai,
-                 "explanation": str(check.get("explanation", ""))}
-    pr = script.get("practice") or {}
-    return {"intro": str(script.get("intro", ""))[:600],
-            "concept": {"summary": str((script.get("concept") or {}).get("summary", "")),
-                        "why_it_works": str((script.get("concept") or {}).get("why_it_works", ""))},
-            "steps": steps, "tips": [str(t) for t in script.get("tips", [])][:5],
-            "common_mistakes": [str(t) for t in script.get("common_mistakes", [])][:5], "check": check,
-            "practice": {"task": str(pr.get("task", lesson.studio_assignment)), "minutes": int(pr.get("minutes") or 30),
-                         "success_criteria": [str(c) for c in pr.get("success_criteria", lesson.assessment_criteria)][:5]},
-            "next_hint": str(script.get("next_hint", ""))}
+        check = {"question": str(check["question"]), "options": opts, "answer_index": ai,
+                 "explanation": str(check.get("explanation") or "")}
+    pr = _d(script.get("practice"))
+    concept = script.get("concept")
+    concept = _d(concept) if isinstance(concept, dict) else {"summary": str(concept or ""), "why_it_works": ""}
+    criteria = [str(c) for c in _l(pr.get("success_criteria"))] or list(lesson.assessment_criteria)
+    return {"intro": str(script.get("intro") or f"Let's begin: {lesson.title}.")[:600],
+            "concept": {"summary": str(concept.get("summary") or ""), "why_it_works": str(concept.get("why_it_works") or "")},
+            "steps": steps, "tips": [str(t) for t in _l(script.get("tips"))][:5],
+            "common_mistakes": [str(t) for t in _l(script.get("common_mistakes"))][:5], "check": check,
+            "practice": {"task": str(pr.get("task") or lesson.studio_assignment or "Practise the steps above."),
+                         "minutes": max(5, min(_int(pr.get("minutes"), 30), 240)), "success_criteria": criteria[:5]},
+            "next_hint": str(script.get("next_hint") or "")}
 
 
-def get_script(db: Session, user: m.User, lesson: m.Lesson, regenerate: bool = False) -> m.LessonContent:
-    cached = db.scalar(select(m.LessonContent).where(m.LessonContent.lesson_id == lesson.id))
-    if cached and not regenerate:
-        return cached
+_locks: dict[int, threading.Lock] = {}
+_locks_guard = threading.Lock()
+log_ = logging.getLogger("artofsoul.lessons")
+
+
+def _lock(lesson_id: int) -> threading.Lock:
+    with _locks_guard:
+        return _locks.setdefault(lesson_id, threading.Lock())
+
+
+def get_script(db: Session, user: m.User, lesson: m.Lesson, regenerate: bool = False,
+               mark_current: bool = True) -> m.LessonContent:
+    # One writer per lesson: if the background prefetch is already writing it, wait for that instead of starting again.
+    with _lock(lesson.id):
+        db.expire_all()
+        lesson = db.get(m.Lesson, lesson.id)
+        cached = db.scalar(select(m.LessonContent).where(m.LessonContent.lesson_id == lesson.id))
+        if cached and not regenerate:
+            if mark_current:
+                _make_current(db, lesson)
+                db.commit()
+            return cached
+        return _write(db, user, lesson, cached, mark_current)
+
+
+def _make_current(db: Session, lesson: m.Lesson) -> None:
+    if lesson.status == "upcoming":
+        for l in lesson.syllabus.lessons:
+            if l.status == "current":
+                l.status = "upcoming"
+        lesson.status = "current"
+
+
+def _write(db: Session, user: m.User, lesson: m.Lesson, cached, mark_current: bool) -> m.LessonContent:
     profile = get_profile(db, user)
     payload = {
         "LEARNER": {"name": user.display_name, "level": profile.level, "track": profile.track, "medium": profile.medium,
                     "goal": profile.goals, "daily_minutes": profile.daily_minutes,
                     "techniques_to_improve": profile.difficulties},
         "LESSON": {"title": lesson.title, "stage": lesson.stage_title, "objectives": lesson.objectives,
-                   "studio_assignment": lesson.studio_assignment, "exercises": lesson.exercises,
+                   "studio_assignment": lesson.studio_assignment,
                    "assessment_criteria": lesson.assessment_criteria, "est_minutes": lesson.est_minutes,
                    "focused_practice": lesson.kind == "remedial"},
     }
     router = get_router()
     raw = router.json("teacher", prompts.LESSON, [{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-                      "lesson_script", prompts.LESSON_SCHEMA, user_id=user.id, max_tokens=4000)
+                      "lesson_script", prompts.LESSON_SCHEMA, user_id=user.id, max_tokens=2500)
     try:
         script = _clean(raw, lesson, db)
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError, AttributeError) as e:
         raise practice_error() from e
     if cached:
         cached.script, cached.model, cached.quiz_correct = script, router.label("teacher"), None
     else:
         cached = m.LessonContent(lesson_id=lesson.id, script=script, model=router.label("teacher"))
         db.add(cached)
-    if lesson.status == "upcoming":
-        for l in lesson.syllabus.lessons:
-            if l.status == "current":
-                l.status = "upcoming"
-        lesson.status = "current"
+    if mark_current:
+        _make_current(db, lesson)
     log(db, user.id, "lesson", f"Teacher prepared lesson: {lesson.title}", "lesson", lesson.id)
     db.commit()
     return cached
+
+
+def next_unwritten(db: Session, lesson: m.Lesson) -> m.Lesson | None:
+    later = sorted((l for l in lesson.syllabus.lessons if l.position > lesson.position and l.status in ("upcoming", "current")),
+                   key=lambda l: l.position)
+    for l in later:
+        if not db.scalar(select(m.LessonContent.id).where(m.LessonContent.lesson_id == l.id)):
+            return l
+        return None  # the very next lesson is already written
+    return None
+
+
+def prefetch_next(user_id: int, lesson_id: int) -> None:
+    """Background job: write the following lesson while the learner studies this one."""
+    _prefetch(user_id, lesson_id, following=True)
+
+
+def prefetch_lesson(user_id: int, lesson_id: int) -> None:
+    """Background job: write this lesson now (e.g. the first lesson right after the plan is made)."""
+    _prefetch(user_id, lesson_id, following=False)
+
+
+def _prefetch(user_id: int, lesson_id: int, following: bool) -> None:
+    from ..config import get_settings
+    from ..db import SessionLocal
+    if not get_settings().prefetch_next_lesson:
+        return
+
+    def run():
+        try:
+            with SessionLocal() as db:
+                lesson = db.get(m.Lesson, lesson_id)
+                user = db.get(m.User, user_id)
+                if not lesson or not user:
+                    return
+                nxt = next_unwritten(db, lesson) if following else lesson
+                if nxt:
+                    get_script(db, user, nxt, mark_current=False)
+        except Exception as e:  # prefetch is best-effort; the learner can always generate on demand
+            log_.info("Prefetch of the next lesson skipped: %s", e)
+
+    threading.Thread(target=run, name=f"prefetch-{lesson_id}", daemon=True).start()
 
 
 def practice_error():

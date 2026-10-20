@@ -53,7 +53,8 @@ class ModelRouter:
         if name not in self._providers:
             if name == "ollama":
                 self._providers[name] = OllamaProvider(self.settings.ollama_url, self.settings.ollama_num_ctx,
-                                                       self.settings.ollama_timeout_seconds, self.settings.ollama_keep_alive)
+                                                       self.settings.ollama_timeout_seconds, self.settings.ollama_keep_alive,
+                                                       think=self.settings.ollama_think)
             elif name == "sdwebui":
                 self._providers[name] = SDWebUIProvider(self.settings.sd_webui_url, self.settings.sd_steps)
             elif name == "none":

@@ -74,21 +74,23 @@ export default function Start() {
   return (
     <div className="min-h-dvh">
       <Backdrop />
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5"><Brand />
-        <button className="btn-ghost text-sm" onClick={() => voice.setMuted(!voice.muted)} aria-pressed={!voice.muted}>{voice.muted ? "Voice off" : "Voice on"}</button></header>
-      <main className="mx-auto grid max-w-5xl items-start gap-6 px-5 pb-16 md:grid-cols-[260px_1fr]">
-        <div className="mx-auto md:sticky md:top-8"><Avatar mood={phase === "building" ? "thinking" : voice.speaking ? "talking" : "idle"} level={voice.level} size={240} /></div>
+      <header className="fixed inset-x-0 top-4 z-30 flex justify-center px-3">
+        <div className="flex items-center gap-3 rounded-full bg-white/90 py-1.5 pl-4 pr-1.5 shadow-[0_8px_30px_-12px_rgba(22,22,29,.35)] backdrop-blur">
+          <Brand />
+          <button className="rounded-full bg-ink px-4 py-2 text-[13.5px] font-semibold text-white" onClick={() => voice.setMuted(!voice.muted)} aria-pressed={!voice.muted}>{voice.muted ? "Voice off" : "Voice on"}</button>
+        </div>
+      </header>
+      <main className="mx-auto grid max-w-5xl items-start gap-8 px-5 pb-16 pt-28 md:grid-cols-[260px_1fr]">
+        <div className="mx-auto md:sticky md:top-28"><Avatar mood={phase === "building" ? "thinking" : voice.speaking ? "talking" : "idle"} level={voice.level} size={typeof window !== "undefined" && window.innerWidth < 640 ? 170 : 250} /></div>
 
-        <section>
+        <section className="glass p-6 sm:p-8">
           {phase === "ask" && q && <>
             <div className="mb-5 flex gap-1.5" aria-label={`Question ${i + 1} of ${visible.length}`}>
-              {visible.map((_, k) => <span key={k} className={`h-2 flex-1 rounded-full transition-colors ${k <= i ? "bg-purple" : "bg-white"}`} />)}
+              {visible.map((_, k) => <span key={k} className={`h-1.5 flex-1 rounded-full transition-colors ${k <= i ? "bg-ink" : "bg-ink/10"}`} />)}
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={q.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.3 }}>
-                <div className="relative mb-6 inline-block rounded-3xl rounded-tl-sm bg-white px-6 py-4 shadow-md">
-                  <h1 className="text-[1.75rem] sm:text-[2.1rem]">{q.ask}</h1>
-                </div>
+                <h1 className="mb-6 text-[1.8rem] sm:text-[2.3rem]">{q.ask}</h1>
 
                 {q.kind === "text" ? (
                   <input autoFocus className="field py-4 text-lg" placeholder={q.placeholder} value={String(value ?? "")} maxLength={q.id === "name" ? 60 : 500}
@@ -97,12 +99,11 @@ export default function Start() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {options.map((o, k) => {
                       const sel = q.kind === "multi" ? ((value as unknown[]) ?? []).includes(o.value) : value === o.value;
-                      const tint = ["from-lavender", "from-peach", "from-sky", "from-coral-soft"][k % 4];
-                      return (
+                                            return (
                         <motion.button key={String(o.value)} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => choose(o.value)} aria-pressed={sel}
-                          className={`rounded-2xl bg-gradient-to-br ${tint} to-white p-5 text-left ring-2 transition ${sel ? "ring-purple" : "ring-transparent"}`}>
+                          className={`rounded-2xl p-5 text-left ring-2 transition ${sel ? "bg-ink text-white ring-ink" : "bg-white/85 ring-transparent hover:ring-white"}`}>
                           <span className="block text-lg font-bold">{o.label}</span>
-                          {o.hint && <span className="text-sm text-ink-soft">{o.hint}</span>}
+                          {o.hint && <span className={`text-sm ${sel ? "text-white/75" : "text-ink-soft"}`}>{o.hint}</span>}
                         </motion.button>);
                     })}
                   </div>
@@ -111,7 +112,7 @@ export default function Start() {
 
                 <div className="mt-8 flex justify-between">
                   <button className="btn-ghost" disabled={i === 0} onClick={() => setI(i - 1)}>Back</button>
-                  {(q.kind !== "single") && <button className="btn-primary" disabled={!canNext} onClick={next}>{i + 1 === visible.length ? "Make my plan" : q.id === "name" && !String(value ?? "").trim() ? "Skip" : "Next"}</button>}
+                  {(q.kind !== "single") && <button className="btn-big" disabled={!canNext} onClick={next}>{i + 1 === visible.length ? "Make my plan" : q.id === "name" && !String(value ?? "").trim() ? "Skip" : "Next"}</button>}
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -121,8 +122,8 @@ export default function Start() {
             <h1 className="text-[2rem]">Planning your lessons</h1>
             <AnimatePresence mode="wait"><motion.p key={tick} className="mt-3 text-lg text-ink-soft" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               {WAIT[Math.min(tick, WAIT.length - 1)]}</motion.p></AnimatePresence>
-            <div className="mt-6 h-2 w-full max-w-md overflow-hidden rounded-full bg-white">
-              <motion.div className="h-full w-1/3 rounded-full bg-gradient-to-r from-purple via-coral to-teal" animate={{ x: ["-100%", "300%"] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }} />
+            <div className="mt-6 h-2 w-full max-w-md overflow-hidden rounded-full bg-ink/10">
+              <motion.div className="h-full w-1/3 rounded-full bg-gradient-to-r from-meadow via-bloom to-meadow" animate={{ x: ["-100%", "300%"] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }} />
             </div>
             <p className="mt-6 text-sm text-ink-faint">The AI runs on your computer, so this can take a few minutes. Keep this tab open.</p>
           </motion.div>}

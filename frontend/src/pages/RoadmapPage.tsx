@@ -8,7 +8,7 @@ import { minutes, useFetch } from "../lib/hooks";
 import type { Lesson, Roadmap, Syllabus } from "../lib/types";
 
 const X = [22, 50, 78, 50];
-const COLORS = ["#7c4dcc", "#d9675e", "#23807f", "#4f9ccf", "#c2923a"];
+const COLORS = ["#4f7032", "#ef6a3f", "#8a6fd0", "#c2923a", "#3f6f8f"];
 
 function Node({ l, idx, onOpen }: { l: Lesson; idx: number; onOpen: () => void }) {
   const done = l.status === "completed", cur = l.status === "current", skip = l.status === "skipped";
@@ -17,7 +17,7 @@ function Node({ l, idx, onOpen }: { l: Lesson; idx: number; onOpen: () => void }
     <motion.button onClick={onOpen} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.06, type: "spring", stiffness: 220, damping: 18 }}
       whileHover={{ scale: 1.06 }} className="group relative flex shrink-0 flex-col items-center"
       aria-label={`${l.title} — ${l.status}`}>
-      <span className={`relative grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 text-lg font-bold shadow-md ${done ? "border-purple bg-purple text-white" : cur ? "border-coral bg-white text-coral" : skip ? "border-line bg-paper-deep text-ink-faint" : "border-white bg-white text-ink-soft"}`}>
+      <span className={`relative grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 text-lg font-bold shadow-md ${done ? "border-ink bg-ink text-white" : cur ? "border-coral bg-white text-coral" : skip ? "border-line bg-paper-deep text-ink-faint" : "border-white bg-white text-ink-soft"}`}>
         {done ? "✓" : idx + 1}
         {cur && <motion.span className="absolute inset-[-8px] rounded-full border-2 border-coral" animate={{ scale: [1, 1.18, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 2, repeat: Infinity }} />}
         {l.is_milestone && <span className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-amber ring-2 ring-white" title="Milestone" />}
@@ -33,7 +33,7 @@ function Connector({ from, to, done, color }: { from: number; to: number; done: 
   return (
     <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-14 w-full" aria-hidden>
       <motion.path d={`M${X[from % 4]} 0 C ${X[from % 4]} 22, ${X[to % 4]} 18, ${X[to % 4]} 40`} fill="none"
-        stroke={done ? color : "#d9d2e6"} strokeWidth="1.2" strokeDasharray={done ? "0" : "2 2"} vectorEffect="non-scaling-stroke"
+        stroke={done ? color : "rgba(22,22,29,.18)"} strokeWidth="1.2" strokeDasharray={done ? "0" : "2 2"} vectorEffect="non-scaling-stroke"
         style={{ strokeWidth: 5 }} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
     </svg>
   );
@@ -70,17 +70,17 @@ export default function RoadmapPage() {
     <>
       <section className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
         <div>
-          <p className="text-sm font-bold text-purple">{loc.state?.fresh ? "Your plan is ready" : "Your learning journey"}</p>
+          <p className="text-sm font-bold text-meadow">{loc.state?.fresh ? "Your plan is ready" : "Your learning journey"}</p>
           <h1 className="mt-1 text-[2.3rem] leading-tight">{syl.data.title}</h1>
           <p className="mt-2 max-w-2xl text-ink-soft">{syl.data.overview}</p>
           <div className="mt-4 flex items-center gap-3">
-            <div className="h-3 w-56 overflow-hidden rounded-full bg-white"><motion.div className="h-full rounded-full bg-gradient-to-r from-purple to-coral"
+            <div className="h-3 w-56 overflow-hidden rounded-full bg-white"><motion.div className="h-full rounded-full bg-gradient-to-r from-meadow to-bloom"
               initial={{ width: 0 }} animate={{ width: `${(done / Math.max(lessons.length, 1)) * 100}%` }} transition={{ duration: 0.8 }} /></div>
             <span className="text-sm text-ink-soft">{done} of {lessons.length} lessons</span>
           </div>
           {current && <Link to={`/studio/${current.id}`} className="btn-big mt-6">Next lesson: {current.title}</Link>}
         </div>
-        {!!syl.data.practice_plan?.length && <aside className="rounded-3xl bg-white/80 p-5 md:w-80">
+        {!!syl.data.practice_plan?.length && <aside className="glass p-5 md:w-80">
           <h2 className="text-lg">Your practice routine</h2>
           <ul className="mt-2 space-y-2 text-[15px]">{syl.data.practice_plan.map((p, i) => <li key={i} className="flex gap-2"><span className="mt-2 h-2 w-2 shrink-0 rounded-full" style={{ background: COLORS[i % 5] }} />{p}</li>)}</ul>
         </aside>}

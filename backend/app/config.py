@@ -38,7 +38,9 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     ollama_num_ctx: int = 16384          # context window; Ollama's own default is too small for syllabus prompts
     ollama_timeout_seconds: float = 900.0  # local models on CPU can be slow
-    ollama_keep_alive: str = "30m"
+    ollama_keep_alive: str = "60m"
+    ollama_think: bool = False             # Gemma 4 "thinking" mode: much slower, rarely needed here
+    prefetch_next_lesson: bool = True      # write the next lesson in the background while you study
     # --- Free, local image generation (optional): Stable Diffusion WebUI / Forge started with --api ---
     sd_webui_url: str = "http://127.0.0.1:7860"
     sd_steps: int = 25

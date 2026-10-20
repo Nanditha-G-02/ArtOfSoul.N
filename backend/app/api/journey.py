@@ -131,6 +131,7 @@ def get_script(lesson_id: int, user: m.User = Depends(current_user), db: Session
 def make_script(lesson_id: int, regenerate: bool = False, user: m.User = Depends(ai_rate_limit), db: Session = Depends(get_db)):
     lesson = _lesson(db, user, lesson_id)
     c = lessons.get_script(db, user, lesson, regenerate)
+    lessons.prefetch_next(user.id, lesson.id)
     return {"lesson": ser.lesson(lesson), "script": c.script, "model": c.model, "visuals": _visuals(db, user, lesson)}
 
 
